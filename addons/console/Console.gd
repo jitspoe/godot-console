@@ -49,10 +49,14 @@ func _ready():
 
 func _input(event : InputEvent):
 	if (event is InputEventKey):
-		if (event.scancode == 96): # Reverse-nice.  Also ~ key.
+		if (event.physical_scancode == 96): # Reverse-nice.  Also ~ key.
 			if (event.pressed):
 				toggle_console()
 			get_tree().set_input_as_handled()
+		elif (event.physical_scancode == KEY_ESCAPE && control.visible): # Disable console on ESC
+			if (event.pressed):
+				toggle_console()
+				get_tree().set_input_as_handled()
 	if (control.visible):
 		if (Input.is_action_just_pressed("ui_up")):
 			get_tree().set_input_as_handled()
@@ -117,6 +121,10 @@ func on_text_entered(text : String):
 
 func add_command(command_name : String, object : Object, function_name : String, param_count : int = 0):
 	console_commands[command_name] = ConsoleCommand.new(funcref(object, function_name), param_count)
+
+
+func remove_command(command_name : String):
+	console_commands.erase(command_name)
 
 
 func quit():
