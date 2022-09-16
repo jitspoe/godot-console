@@ -52,9 +52,11 @@ func _input(event : InputEvent):
 		if (event.get_physical_keycode_with_modifiers() == 96): # Reverse-nice.  Also ~ key.
 			if (event.pressed):
 				toggle_console()
+			get_viewport().set_input_as_handled()
 		elif (event.get_physical_keycode_with_modifiers() == KEY_ESCAPE && control.visible): # Disable console on ESC
 			if (event.pressed):
 				toggle_console()
+				get_viewport().set_input_as_handled()
 	if (control.visible):
 		if (Input.is_action_just_pressed("ui_up")):
 			get_tree().set_input_as_handled()
