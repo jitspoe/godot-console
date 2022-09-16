@@ -14,9 +14,9 @@ class ConsoleCommand:
 		param_count = in_param_count
 
 
-onready var control := Control.new()
-onready var rich_label := RichTextLabel.new()
-onready var line_edit := LineEdit.new()
+@onready var control := Control.new()
+@onready var rich_label := RichTextLabel.new()
+@onready var line_edit := LineEdit.new()
 
 var console_commands := {}
 var console_history := []
@@ -33,30 +33,28 @@ func _ready():
 	rich_label.scroll_following = true
 	rich_label.anchor_right = 1.0
 	rich_label.anchor_bottom = 0.5
-	rich_label.add_stylebox_override("normal", load("res://addons/console/console_background.tres"))
+	rich_label.add_theme_stylebox_override("normal", load("res://addons/console/console_background.tres"))
 	control.add_child(rich_label)
 	rich_label.text = "Development console.\n"
 	line_edit.anchor_top = 0.5
 	line_edit.anchor_right = 1.0
 	line_edit.anchor_bottom = 0.5
 	control.add_child(line_edit)
-	line_edit.connect("text_entered", self, "on_text_entered")
+	line_edit.text_submitted.connect(Callable(self, "on_text_entered"))
 	control.visible = false
-	pause_mode = PAUSE_MODE_PROCESS
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_command("quit", self, "quit", 0)
 	add_command("exit", self, "quit", 0)
 
 
 func _input(event : InputEvent):
 	if (event is InputEventKey):
-		if (event.physical_scancode == 96): # Reverse-nice.  Also ~ key.
+		if (event.get_physical_keycode_with_modifiers() == 96): # Reverse-nice.  Also ~ key.
 			if (event.pressed):
 				toggle_console()
-			get_tree().set_input_as_handled()
-		elif (event.physical_scancode == KEY_ESCAPE && control.visible): # Disable console on ESC
+		elif (event.get_physical_keycode_with_modifiers() == KEY_ESCAPE && control.visible): # Disable console on ESC
 			if (event.pressed):
 				toggle_console()
-				get_tree().set_input_as_handled()
 	if (control.visible):
 		if (Input.is_action_just_pressed("ui_up")):
 			get_tree().set_input_as_handled()
@@ -79,6 +77,7 @@ func toggle_console():
 	control.visible = !control.visible
 	if (control.visible):
 		get_tree().paused = true
+		line_edit.clear()
 		line_edit.grab_focus()
 		emit_signal("console_opened")
 	else:
@@ -105,13 +104,13 @@ func on_text_entered(text : String):
 			var command_entry : ConsoleCommand = console_commands[command_string]
 			match command_entry.param_count:
 				0:
-					command_entry.function.call_func()
+					command_entry.function.call()
 				1:
-					command_entry.function.call_func(split_text[1] if split_text.size() > 1 else "")
+					command_entry.function.call(split_text[1] if split_text.size() > 1 else "")
 				2:
-					command_entry.function.call_func(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "")
+					command_entry.function.call(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "")
 				3:
-					command_entry.function.call_func(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "", split_text[3] if split_text.size() > 3 else "")
+					command_entry.function.call(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "", split_text[3] if split_text.size() > 3 else "")
 				_:
 					print_line("Commands with more than 3 parameters not supported.")
 		else:
@@ -120,7 +119,7 @@ func on_text_entered(text : String):
 
 
 func add_command(command_name : String, object : Object, function_name : String, param_count : int = 0):
-	console_commands[command_name] = ConsoleCommand.new(funcref(object, function_name), param_count)
+	console_commands[command_name] = ConsoleCommand.new(Callable(object, function_name), param_count)
 
 
 func remove_command(command_name : String):
