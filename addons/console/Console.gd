@@ -87,17 +87,19 @@ func _input(event : InputEvent) -> void:
 						line_edit.text = ""
 			if (event.get_physical_keycode_with_modifiers() == KEY_PAGEUP):
 				rich_label.get_v_scroll_bar().value -= 300
+				get_tree().get_root().set_input_as_handled()
 			if (event.get_physical_keycode_with_modifiers() == KEY_PAGEDOWN):
 				rich_label.get_v_scroll_bar().value += 300
+				get_tree().get_root().set_input_as_handled()
 			if (event.get_physical_keycode_with_modifiers() == KEY_TAB):
 				autocomplete()
+				get_tree().get_root().set_input_as_handled()
 
 
 func autocomplete() -> void:
 	for command in console_commands:
-		print(command)
-		if (command as String).contains(line_edit.text):
-			line_edit.text = command
+		if str(command).contains(line_edit.text):
+			line_edit.text = str(command)
 			line_edit.caret_column = line_edit.text.length()
 
 
