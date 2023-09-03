@@ -48,6 +48,7 @@ func _ready() -> void:
 	add_command("clear", self, "clear")
 	add_command("delete_history", self, "delete_history")
 	add_command("help", self, "help")
+	add_command("commands_list", self, "commands_list")
 
 
 func _input(event : InputEvent) -> void:
@@ -185,7 +186,14 @@ func delete_history() -> void:
 
 
 func help() -> void:
-	rich_label.add_text("\nBuilt in commands:\n    'clear' : Clears the current registry view\n    'delete_hystory' : Deletes the commands history\n    'quit' : Quits the game\nControls:\n    Up and Down arrow keys to navigate commands history\n    PageUp and PageDown to navigate registry history\n    Ctr+Tilde to change console size between half screen and full creen\n    Tilde or Esc to close the console\n    Tab for basic autocomplete\n")
+	rich_label.add_text("\nBuilt in commands:\n    'clear' : Clears the current registry view\n    'commands_list': Shows a list of all the currently registered commands\n    'delete_hystory' : Deletes the commands history\n    'quit' : Quits the game\nControls:\n    Up and Down arrow keys to navigate commands history\n    PageUp and PageDown to navigate registry history\n    Ctr+Tilde to change console size between half screen and full creen\n    Tilde or Esc to close the console\n    Tab for basic autocomplete\n\n")
+
+func commands_list() -> void:
+	var commands := []
+	for command in console_commands:
+		commands.append(str(command))
+	commands.sort()
+	rich_label.add_text(str(commands) + "\n\n")
 
 
 func add_input_history(text : String) -> void:
