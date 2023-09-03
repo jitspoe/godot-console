@@ -87,10 +87,12 @@ func _input(event : InputEvent) -> void:
 					else:
 						line_edit.text = ""
 			if (event.get_physical_keycode_with_modifiers() == KEY_PAGEUP):
-				rich_label.get_v_scroll_bar().value -= 300
+				var scroll := rich_label.get_v_scroll_bar()
+				scroll.value -= scroll.page - scroll.page * 0.1
 				get_tree().get_root().set_input_as_handled()
 			if (event.get_physical_keycode_with_modifiers() == KEY_PAGEDOWN):
-				rich_label.get_v_scroll_bar().value += 300
+				var scroll := rich_label.get_v_scroll_bar()
+				scroll.value += scroll.page - scroll.page * 0.1
 				get_tree().get_root().set_input_as_handled()
 			if (event.get_physical_keycode_with_modifiers() == KEY_TAB):
 				autocomplete()
@@ -187,6 +189,7 @@ func delete_history() -> void:
 
 func help() -> void:
 	rich_label.add_text("\nBuilt in commands:\n    'clear' : Clears the current registry view\n    'commands_list': Shows a list of all the currently registered commands\n    'delete_hystory' : Deletes the commands history\n    'quit' : Quits the game\nControls:\n    Up and Down arrow keys to navigate commands history\n    PageUp and PageDown to navigate registry history\n    Ctr+Tilde to change console size between half screen and full creen\n    Tilde or Esc to close the console\n    Tab for basic autocomplete\n\n")
+
 
 func commands_list() -> void:
 	var commands := []
