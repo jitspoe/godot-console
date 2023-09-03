@@ -89,6 +89,16 @@ func _input(event : InputEvent) -> void:
 				rich_label.get_v_scroll_bar().value -= 300
 			if (event.get_physical_keycode_with_modifiers() == KEY_PAGEDOWN):
 				rich_label.get_v_scroll_bar().value += 300
+			if (event.get_physical_keycode_with_modifiers() == KEY_TAB):
+				autocomplete()
+
+
+func autocomplete() -> void:
+	for command in console_commands:
+		print(command)
+		if (command as String).contains(line_edit.text):
+			line_edit.text = command
+			line_edit.caret_column = line_edit.text.length()
 
 
 func toggle_size() -> void:
