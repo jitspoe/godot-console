@@ -40,20 +40,20 @@ func _ready() -> void:
 	line_edit.anchor_right = 1.0
 	line_edit.anchor_bottom = 0.5
 	control.add_child(line_edit)
-	line_edit.connect("text_submitted", Callable(self, "on_text_entered"))
+	line_edit.text_submitted.connect(on_text_entered)
 	control.visible = false
-	process_mode = Node.PROCESS_MODE_ALWAYS
-	add_command("quit", self, "quit")
-	add_command("exit", self, "quit")
-	add_command("clear", self, "clear")
-	add_command("delete_history", self, "delete_history")
-	add_command("help", self, "help")
-	add_command("commands_list", self, "commands_list")
+	process_mode = PROCESS_MODE_ALWAYS
+	add_command("quit", quit, 0)
+	add_command("exit", quit, 0)
+	add_command("clear", clear, 0)
+	add_command("delete_history", delete_history, 0)
+	add_command("help", help, 0)
+	add_command("commands_list", commands_list, 0)
 
 
 func _input(event : InputEvent) -> void:
 	if (event is InputEventKey):
-		if (event.get_physical_keycode_with_modifiers() == KEY_QUOTELEFT): # Reverse-nice.  Also ~ key.
+		if (event.get_physical_keycode_with_modifiers() == KEY_QUOTELEFT): # ~ key.
 			if (event.pressed):
 				toggle_console()
 			get_tree().get_root().set_input_as_handled()
@@ -165,8 +165,8 @@ func on_text_entered(text : String) -> void:
 			print_line("Command not found.")
 
 
-func add_command(command_name : String, object : Object, function_name : String, param_count : int = 0) -> void:
-	console_commands[command_name] = ConsoleCommand.new(Callable(object, function_name), param_count)
+func add_command(command_name : String, function : Callable, param_count : int = 0) -> void:
+	console_commands[command_name] = ConsoleCommand.new(function, param_count)
 
 
 func remove_command(command_name : String) -> void:
@@ -220,22 +220,20 @@ func add_input_history(text : String) -> void:
 
 func _enter_tree() -> void:
 	var console_history_file := FileAccess.open("user://console_history.txt", FileAccess.READ)
-	if console_history_file:
+	if (console_history_file):
 		while (!console_history_file.eof_reached()):
 			var line := console_history_file.get_line()
 			if (line.length()):
 				add_input_history(line)
-		console_history_file.close()
 
 
 func _exit_tree() -> void:
 	var console_history_file := FileAccess.open("user://console_history.txt", FileAccess.WRITE)
-	if console_history_file:
+	if (console_history_file):
 		var write_index := 0
 		var start_write_index := console_history.size() - 100 # Max lines to write
 		for line in console_history:
 			if (write_index >= start_write_index):
 				console_history_file.store_line(line)
 			write_index += 1
-		console_history_file.close()
 
