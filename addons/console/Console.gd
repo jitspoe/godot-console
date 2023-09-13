@@ -41,6 +41,7 @@ func _ready() -> void:
 	line_edit.anchor_bottom = 0.5
 	control.add_child(line_edit)
 	line_edit.text_submitted.connect(on_text_entered)
+	line_edit.text_changed.connect(on_line_edit_text_changed)
 	control.visible = false
 	process_mode = PROCESS_MODE_ALWAYS
 	add_command("quit", quit, 0)
@@ -77,6 +78,7 @@ func _input(event : InputEvent) -> void:
 					if (console_history_index >= 0):
 						line_edit.text = console_history[console_history_index]
 						line_edit.caret_column = line_edit.text.length()
+						reset_autocomplete()
 			if (event.get_physical_keycode_with_modifiers() == KEY_DOWN):
 				get_tree().get_root().set_input_as_handled()
 				if (console_history_index < console_history.size()):
@@ -84,8 +86,10 @@ func _input(event : InputEvent) -> void:
 					if (console_history_index < console_history.size()):
 						line_edit.text = console_history[console_history_index]
 						line_edit.caret_column = line_edit.text.length()
+						reset_autocomplete()
 					else:
 						line_edit.text = ""
+						reset_autocomplete()
 			if (event.get_physical_keycode_with_modifiers() == KEY_PAGEUP):
 				var scroll := rich_label.get_v_scroll_bar()
 				scroll.value -= scroll.page - scroll.page * 0.1
@@ -99,11 +103,33 @@ func _input(event : InputEvent) -> void:
 				get_tree().get_root().set_input_as_handled()
 
 
+var suggestions := []
+var current_suggest := 0
+var suggesting := false
 func autocomplete() -> void:
-	for command in console_commands:
-		if str(command).contains(line_edit.text):
-			line_edit.text = str(command)
-			line_edit.caret_column = line_edit.text.length()
+	if suggesting:
+		for i in range(suggestions.size()):
+			if current_suggest == i:
+				line_edit.text = str(suggestions[i])
+				line_edit.caret_column = line_edit.text.length()
+				if current_suggest == suggestions.size() - 1:
+					current_suggest = 0
+				else:
+					current_suggest += 1
+				return
+	else:
+		suggesting = true
+		for command in console_commands:
+			if str(command).contains(line_edit.text):
+				suggestions.append(str(command))
+		suggestions.sort()
+		autocomplete()
+
+
+func reset_autocomplete() -> void:
+	suggestions.clear()
+	current_suggest = 0
+	suggesting = false
 
 
 func toggle_size() -> void:
@@ -122,6 +148,7 @@ func toggle_console() -> void:
 	else:
 		control.anchor_bottom = 1.0
 		scroll_to_bottom()
+		reset_autocomplete()
 		get_tree().paused = false
 		emit_signal("console_closed")
 
@@ -141,6 +168,7 @@ func print_line(text : String) -> void:
 
 func on_text_entered(text : String) -> void:
 	scroll_to_bottom()
+	reset_autocomplete()
 	line_edit.clear()
 	add_input_history(text)
 	print_line(text)
@@ -163,6 +191,10 @@ func on_text_entered(text : String) -> void:
 		else:
 			emit_signal("console_unknown_command")
 			print_line("Command not found.")
+
+
+func on_line_edit_text_changed(new_text : String) -> void:
+	reset_autocomplete()
 
 
 func add_command(command_name : String, function : Callable, param_count : int = 0) -> void:
