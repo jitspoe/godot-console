@@ -119,10 +119,22 @@ func autocomplete() -> void:
 				return
 	else:
 		suggesting = true
+		
+		var sorted_commands := []
 		for command in console_commands:
-			if str(command).contains(line_edit.text):
-				suggestions.append(str(command))
-		suggestions.sort()
+			sorted_commands.append(str(command))
+		sorted_commands.sort()
+		sorted_commands.reverse()
+		
+		var prev_index := 0
+		for command in sorted_commands:
+			if command.contains(line_edit.text):
+				var index : int = command.find(line_edit.text)
+				if index <= prev_index:
+					suggestions.push_front(command)
+				else:
+					suggestions.push_back(command)
+				prev_index = index
 		autocomplete()
 
 
