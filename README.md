@@ -7,7 +7,7 @@ After you've done that, you can add console commands from any class.
 
 Example:
 
-```
+```gdscript
 func _ready():
   Console.add_command("hello", my_hello_function)
 
@@ -17,7 +17,7 @@ func my_hello_function():
 
 You can also specify up to 3 parameters, which will be passed in as strings:
 
-```
+```gdscript
   Console.add_command("param_test", param_test_function, 1) # 1 specifies 1 parameter
 
 func param_test_function(param1 : String):
