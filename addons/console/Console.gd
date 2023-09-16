@@ -99,11 +99,13 @@ func _input(event : InputEvent) -> void:
 						reset_autocomplete()
 			if (event.get_physical_keycode_with_modifiers() == KEY_PAGEUP):
 				var scroll := rich_label.get_v_scroll_bar()
-				scroll.value -= scroll.page - scroll.page * 0.1
+				var tween := create_tween()
+				tween.tween_property(scroll, "value",  scroll.value - (scroll.page - scroll.page * 0.1), 0.1)
 				get_tree().get_root().set_input_as_handled()
 			if (event.get_physical_keycode_with_modifiers() == KEY_PAGEDOWN):
 				var scroll := rich_label.get_v_scroll_bar()
-				scroll.value += scroll.page - scroll.page * 0.1
+				var tween := create_tween()
+				tween.tween_property(scroll, "value",  scroll.value + (scroll.page - scroll.page * 0.1), 0.1)
 				get_tree().get_root().set_input_as_handled()
 			if (event.get_physical_keycode_with_modifiers() == KEY_TAB):
 				autocomplete()
