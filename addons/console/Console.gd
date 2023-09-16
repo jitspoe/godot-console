@@ -34,6 +34,8 @@ func _ready() -> void:
 	canvas_layer.add_child(control)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("000000d7")
+	rich_label.selection_enabled = true
+	rich_label.context_menu_enabled = true
 	rich_label.bbcode_enabled = true
 	rich_label.scroll_following = true
 	rich_label.anchor_right = 1.0
@@ -194,7 +196,7 @@ func on_text_entered(new_text : String) -> void:
 	
 	if not new_text.strip_edges().is_empty():
 		add_input_history(new_text)
-		print_line(new_text)
+		print_line("[i]> " + new_text + "[/i]")
 		var new_text_stripped := new_text.strip_edges()
 		
 		var text_split := new_text_stripped.split(" ")
@@ -248,8 +250,7 @@ func delete_history() -> void:
 
 
 func help() -> void:
-	rich_label.append_text("
-	Built in commands:
+	rich_label.append_text("	Built in commands:
 		[color=light_green]clear[/color]: Clears the registry view
 		[color=light_green]commands[/color]: Shows a list of all the currently registered commands
 		[color=light_green]commands_list[/color]: Shows a detailed list of all the currently registered commands
@@ -268,6 +269,7 @@ func commands() -> void:
 	for command in console_commands:
 		commands.append(str(command))
 	commands.sort()
+	rich_label.append_text("	")
 	rich_label.append_text(str(commands) + "\n\n")
 
 
