@@ -30,15 +30,19 @@ func _ready() -> void:
 	control.anchor_bottom = 1.0
 	control.anchor_right = 1.0
 	canvas_layer.add_child(control)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("000000d7")
+	rich_label.bbcode_enabled = true
 	rich_label.scroll_following = true
 	rich_label.anchor_right = 1.0
 	rich_label.anchor_bottom = 0.5
-	rich_label.add_theme_stylebox_override("normal", load("res://addons/console/console_background.tres"))
+	rich_label.add_theme_stylebox_override("normal", style)
 	control.add_child(rich_label)
-	rich_label.text = "Development console.\n"
+	rich_label.append_text("Development console.\n")
 	line_edit.anchor_top = 0.5
 	line_edit.anchor_right = 1.0
 	line_edit.anchor_bottom = 0.5
+	line_edit.placeholder_text = "Enter \"help\" for instructions"
 	control.add_child(line_edit)
 	line_edit.text_submitted.connect(on_text_entered)
 	line_edit.text_changed.connect(on_line_edit_text_changed)
@@ -174,8 +178,8 @@ func print_line(text : String) -> void:
 	if (!rich_label): # Tried to print something before the console was loaded.
 		call_deferred("print_line", text)
 	else:
-		rich_label.add_text(text)
-		rich_label.add_text("\n")
+		rich_label.append_text(text)
+		rich_label.append_text("\n")
 
 
 func on_text_entered(text : String) -> void:
@@ -232,20 +236,20 @@ func delete_history() -> void:
 
 
 func help() -> void:
-	rich_label.add_text("\
-	\n\
-	Built in commands:\n\
-		'clear' : Clears the current registry view\n\
-		'commands_list': Shows a list of all the currently registered commands\n\
-		'delete_hystory' : Deletes the commands history\n\
-		'quit' : Quits the game\n\
-	Controls:\n\
-		Up and Down arrow keys to navigate commands history\n\
-		PageUp and PageDown to navigate registry history\n\
-		Ctr+Tilde to change console size between half screen and full creen\n\
-		Tilde or Esc to close the console\n\
-		Tab for basic autocomplete\n\
-	\n")
+	rich_label.append_text("
+	Built in commands:
+		[color=light_green]clear[/color]: Clears the registry view
+		[color=light_green]commands_list[/color]: Shows a list of all the currently registered commands
+		[color=light_green]delete_hystory[/color]: Deletes the commands history
+		[color=light_green]code_example[/color]: Shows an usage example
+		[color=light_green]quit[/color]: Quits the game
+	Controls:
+		[color=light_blue]Up[/color] and [color=light_blue]Down[/color] arrow keys to navigate commands history
+		[color=light_blue]PageUp[/color] and [color=light_blue]PageDown[/color] to scroll registry
+		[[color=light_blue]Ctr[/color] + [color=light_blue]~[/color]] to change console size between half screen and full screen
+		[color=light_blue]~[/color] or [color=light_blue]Esc[/color] key to close the console
+		[color=light_blue]Tab[/color] key to autocomplete, [color=light_blue]Tab[/color] again to cycle between matching suggestions
+	")
 
 
 func commands_list() -> void:
@@ -253,7 +257,7 @@ func commands_list() -> void:
 	for command in console_commands:
 		commands.append(str(command))
 	commands.sort()
-	rich_label.add_text(str(commands) + "\n\n")
+	rich_label.append_text(str(commands) + "\n\n")
 
 
 func add_input_history(text : String) -> void:
