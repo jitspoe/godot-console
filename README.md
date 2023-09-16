@@ -25,3 +25,5 @@ func param_test_function(param1 : String):
 ```
 
 The "quit"/"exit" command is implemented by default.
+
+If you prefer to use C#, you might want to check out the C# console by Moliko here: https://github.com/MolikoDeveloper/Csharp-Console-Godot
