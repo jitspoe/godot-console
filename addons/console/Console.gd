@@ -9,10 +9,12 @@ signal console_unknown_command
 class ConsoleCommand:
 	var function : Callable
 	var arguments : PackedStringArray
+	var required : int
 	var description : String
-	func _init(in_function : Callable, in_arguments : PackedStringArray, in_description : String = ""):
+	func _init(in_function : Callable, in_arguments : PackedStringArray, in_required : int = 0, in_description : String = ""):
 		function = in_function
 		arguments = in_arguments
+		required = in_required
 		description = in_description
 
 
@@ -59,6 +61,7 @@ func _ready() -> void:
 	add_command("help", help, 0)
 	add_command("commands_list", commands_list, 0)
 	add_command("commands", commands, 0)
+	add_command("calc", calculate, 1)
 
 
 func _input(event : InputEvent) -> void:
@@ -201,34 +204,51 @@ func on_text_entered(new_text : String) -> void:
 		
 		var text_split := new_text_stripped.split(" ")
 		var text_command := text_split[0]
+		
 		if console_commands.has(text_command):
 			var arguments := []
 			for word in text_split.slice(1):
 				arguments.push_back(word.lstrip("\"'").rstrip("\"'"))
+			
+			# calc is a especial command that needs special treatment
+			if text_command.match("calc"):
+				var expression := ""
+				for word in arguments:
+					expression += word
+				console_commands[text_command].function.callv([expression])
+				return
+			
+			if arguments.size() < console_commands[text_command].required:
+				print_line("[color=light_coral]	ERROR:[/color] Too few arguments! Required < %d >" % console_commands[text_command].required)
+				return
+			elif arguments.size() > console_commands[text_command].arguments.size():
+				print_line("[color=light_coral]	ERROR:[/color] Too many arguments! < %d > Max" % console_commands[text_command].arguments.size())
+				return
+			
 			console_commands[text_command].function.callv(arguments)
 		else:
 			emit_signal("console_unknown_command")
-			print_line("Command not found.")
+			print_line("[color=light_coral]	ERROR:[/color] Command not found.")
 
 
 func on_line_edit_text_changed(new_text : String) -> void:
 	reset_autocomplete()
 
 
-func add_command(command_name : String, function : Callable, arguments = [], description : String = "") -> void:
+func add_command(command_name : String, function : Callable, arguments = [], required: int = 0, description : String = "") -> void:
 	if arguments is int:
-		# Legacy call using a parameter number
+		# Legacy call using an argument number
 		var param_array : PackedStringArray
 		for i in range(arguments):
-			param_array.append("param_" + str(i + 1))
-		console_commands[command_name] = ConsoleCommand.new(function, param_array, description)
+			param_array.append("arg_" + str(i + 1))
+		console_commands[command_name] = ConsoleCommand.new(function, param_array, required, description)
 		
 	elif arguments is Array:
-		# New array parameter system
+		# New array argument system
 		var str_args : PackedStringArray
 		for argument in arguments:
 			str_args.append(str(argument))
-		console_commands[command_name] = ConsoleCommand.new(function, str_args, description)
+		console_commands[command_name] = ConsoleCommand.new(function, str_args, required, description)
 
 
 func remove_command(command_name : String) -> void:
@@ -251,8 +271,9 @@ func delete_history() -> void:
 
 func help() -> void:
 	rich_label.append_text("	Built in commands:
+		[color=light_green]calc[/color]: Calculates a given expresion
 		[color=light_green]clear[/color]: Clears the registry view
-		[color=light_green]commands[/color]: Shows a list of all the currently registered commands
+		[color=light_green]commands[/color]: Shows a reduced list of all the currently registered commands
 		[color=light_green]commands_list[/color]: Shows a detailed list of all the currently registered commands
 		[color=light_green]delete_hystory[/color]: Deletes the commands history
 		[color=light_green]quit[/color]: Quits the game
@@ -262,6 +283,19 @@ func help() -> void:
 		[[color=light_blue]Ctr[/color] + [color=light_blue]~[/color]] to change console size between half screen and full screen
 		[color=light_blue]~[/color] or [color=light_blue]Esc[/color] key to close the console
 		[color=light_blue]Tab[/color] key to autocomplete, [color=light_blue]Tab[/color] again to cycle between matching suggestions\n\n")
+
+
+func calculate(command : String) -> void:
+	var expression := Expression.new()
+	var error = expression.parse(command)
+	if error:
+		print_line("[color=light_coral]	ERROR: [/color] %s" % expression.get_error_text())
+		return
+	var result = expression.execute()
+	if not expression.has_execute_failed():
+		print_line(str(result))
+	else:
+		print_line("[color=light_coral]	ERROR: [/color] %s" % expression.get_error_text())
 
 
 func commands() -> void:
@@ -282,8 +316,11 @@ func commands_list() -> void:
 	for command in commands:
 		var arguments_string := ""
 		var description : String = console_commands[command].description
-		for argument in console_commands[command].arguments:
-			arguments_string += "  <" + argument + ">"
+		for i in range(console_commands[command].arguments.size()):
+			if i < console_commands[command].required:
+				arguments_string += "  [color=cornflower_blue]<" + console_commands[command].arguments[i] + ">[/color]"
+			else:
+				arguments_string += "  <" + console_commands[command].arguments[i] + ">"
 		rich_label.append_text("	[color=light_green]%s[/color][color=gray]%s[/color]:   %s\n" % [command, arguments_string, description])
 	rich_label.append_text("\n")
 
