@@ -186,7 +186,7 @@ func on_text_entered(text : String) -> void:
 	print_line(text)
 	var split_text := text.split(" ", true)
 	if (split_text.size() > 0):
-		var command_string := split_text[0].to_lower()
+		var command_string := split_text[0]
 		if (console_commands.has(command_string)):
 			var command_list : Array = console_commands[command_string]
 			# loop over all the commands and call the command
@@ -212,17 +212,26 @@ func on_line_edit_text_changed(new_text : String) -> void:
 
 
 func add_command(command_name : String, function : Callable, param_count : int = 0) -> void:
-	# add the command to the list of commands
-	console_commands[command_name].push_back(ConsoleCommand.new(function, param_count))
+	if command_name in console_commands:
+		# add the command to the list of commands
+		console_commands[command_name].push_back(ConsoleCommand.new(function, param_count))
+	else:
+		console_commands[command_name] = [];
+		console_commands[command_name].push_back(ConsoleCommand.new(function, param_count))
+	
 
 
 func remove_command(command_name : String, function: Callable) -> void:
 	if command_name in console_commands:
-		# loop over all the commands and see if we can find the function we want to remove
+		# loop over all the commands and see if we can find the function we want
+		# to remove
 		for command in console_commands[command_name]:
 			if command.function == function:
 				console_commands[command_name].erase(command)
-
+				# If the list is empty remove the command_name so it's not 
+				# listed when showing the "command_list" commands.
+				if len(console_commands[command_name]) == 0:
+					console_commands.erase(command_name)
 
 func quit() -> void:
 	get_tree().quit()
