@@ -7,11 +7,20 @@ signal console_unknown_command
 
 
 class ConsoleCommand:
-	var function : Callable
+	var function_list := []
 	var param_count : int
+	
 	func _init(in_function : Callable, in_param_count : int):
-		function = in_function
+		function_list.push_back(in_function)
 		param_count = in_param_count
+
+	func add_function(function_to_add : Callable):
+		function_list.push_back(function_to_add)
+
+	func remove_function(function_to_remove : Callable):
+		for function in function_list:
+			if function == function_to_remove:
+				function_list.erase(function)
 
 
 @onready var control := Control.new()
@@ -188,20 +197,23 @@ func on_text_entered(text : String) -> void:
 	if (split_text.size() > 0):
 		var command_string := split_text[0]
 		if (console_commands.has(command_string)):
-			var command_list : Array = console_commands[command_string]
+			var command : ConsoleCommand = console_commands[command_string]
 			# loop over all the commands and call the command
-			for command in command_list:
-				match command.param_count:
-					0:
-						command.function.call()
-					1:
-						command.function.call(split_text[1] if split_text.size() > 1 else "")
-					2:
-						command.function.call(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "")
-					3:
-						command.function.call(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "", split_text[3] if split_text.size() > 3 else "")
-					_:
-						print_line("Commands with more than 3 parameters not supported.")
+			match command.param_count:
+				0:
+					for commandFunction in command.function_list:
+						commandFunction.call()
+				1:
+					for commandFunction in command.function_list:
+						commandFunction.call(split_text[1] if split_text.size() > 1 else "")
+				2:
+					for commandFunction in command.function_list:
+						commandFunction.call(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "")
+				3:
+					for commandFunction in command.function_list:
+						commandFunction.call(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "", split_text[3] if split_text.size() > 3 else "")
+				_:
+					print_line("Commands with more than 3 parameters not supported.")
 		else:
 			emit_signal("console_unknown_command")
 			print_line("Command not found.")
@@ -213,25 +225,17 @@ func on_line_edit_text_changed(new_text : String) -> void:
 
 func add_command(command_name : String, function : Callable, param_count : int = 0) -> void:
 	if command_name in console_commands:
-		# add the command to the list of commands
-		console_commands[command_name].push_back(ConsoleCommand.new(function, param_count))
+		# add the command
+		console_commands[command_name].add_function(function);
 	else:
-		console_commands[command_name] = [];
-		console_commands[command_name].push_back(ConsoleCommand.new(function, param_count))
+		# create the command and add the command
+		console_commands[command_name] = ConsoleCommand.new(function, param_count)
 	
-
-
 func remove_command(command_name : String, function: Callable) -> void:
 	if command_name in console_commands:
-		# loop over all the commands and see if we can find the function we want
-		# to remove
-		for command in console_commands[command_name]:
-			if command.function == function:
-				console_commands[command_name].erase(command)
-				# If the list is empty remove the command_name so it's not 
-				# listed when showing the "command_list" commands.
-				if len(console_commands[command_name]) == 0:
-					console_commands.erase(command_name)
+		console_commands[command_name].remove_function(function)
+		if len(console_commands[command_name].function_list) == 0:
+			console_commands.erase(command_name)
 
 func quit() -> void:
 	get_tree().quit()
