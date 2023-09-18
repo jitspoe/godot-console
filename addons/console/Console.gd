@@ -188,18 +188,20 @@ func on_text_entered(text : String) -> void:
 	if (split_text.size() > 0):
 		var command_string := split_text[0].to_lower()
 		if (console_commands.has(command_string)):
-			var command_entry : ConsoleCommand = console_commands[command_string]
-			match command_entry.param_count:
-				0:
-					command_entry.function.call()
-				1:
-					command_entry.function.call(split_text[1] if split_text.size() > 1 else "")
-				2:
-					command_entry.function.call(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "")
-				3:
-					command_entry.function.call(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "", split_text[3] if split_text.size() > 3 else "")
-				_:
-					print_line("Commands with more than 3 parameters not supported.")
+			var command_list : Array = console_commands[command_string]
+			# loop over all the commands and call the command
+			for command in command_list:
+				match command.param_count:
+					0:
+						command.function.call()
+					1:
+						command.function.call(split_text[1] if split_text.size() > 1 else "")
+					2:
+						command.function.call(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "")
+					3:
+						command.function.call(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "", split_text[3] if split_text.size() > 3 else "")
+					_:
+						print_line("Commands with more than 3 parameters not supported.")
 		else:
 			emit_signal("console_unknown_command")
 			print_line("Command not found.")
@@ -210,11 +212,16 @@ func on_line_edit_text_changed(new_text : String) -> void:
 
 
 func add_command(command_name : String, function : Callable, param_count : int = 0) -> void:
-	console_commands[command_name] = ConsoleCommand.new(function, param_count)
+	# add the command to the list of commands
+	console_commands[command_name].push_back(ConsoleCommand.new(function, param_count))
 
 
-func remove_command(command_name : String) -> void:
-	console_commands.erase(command_name)
+func remove_command(command_name : String, function: Callable) -> void:
+	if command_name in console_commands:
+		# loop over all the commands and see if we can find the function we want to remove
+		for command in console_commands[command_name]:
+			if command.function == function:
+				console_commands[command_name].erase(command)
 
 
 func quit() -> void:
