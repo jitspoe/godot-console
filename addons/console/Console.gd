@@ -8,10 +8,14 @@ signal console_unknown_command
 
 class ConsoleCommand:
 	var function : Callable
-	var param_count : int
-	func _init(in_function : Callable, in_param_count : int):
+	var arguments : PackedStringArray
+	var required : int
+	var description : String
+	func _init(in_function : Callable, in_arguments : PackedStringArray, in_required : int = 0, in_description : String = ""):
 		function = in_function
-		param_count = in_param_count
+		arguments = in_arguments
+		required = in_required
+		description = in_description
 
 
 @onready var control := Control.new()
@@ -30,15 +34,21 @@ func _ready() -> void:
 	control.anchor_bottom = 1.0
 	control.anchor_right = 1.0
 	canvas_layer.add_child(control)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("000000d7")
+	rich_label.selection_enabled = true
+	rich_label.context_menu_enabled = true
+	rich_label.bbcode_enabled = true
 	rich_label.scroll_following = true
 	rich_label.anchor_right = 1.0
 	rich_label.anchor_bottom = 0.5
-	rich_label.add_theme_stylebox_override("normal", load("res://addons/console/console_background.tres"))
+	rich_label.add_theme_stylebox_override("normal", style)
 	control.add_child(rich_label)
-	rich_label.text = "Development console.\n"
+	rich_label.append_text("Development console.\n")
 	line_edit.anchor_top = 0.5
 	line_edit.anchor_right = 1.0
 	line_edit.anchor_bottom = 0.5
+	line_edit.placeholder_text = "Enter \"help\" for instructions"
 	control.add_child(line_edit)
 	line_edit.text_submitted.connect(on_text_entered)
 	line_edit.text_changed.connect(on_line_edit_text_changed)
@@ -50,6 +60,8 @@ func _ready() -> void:
 	add_command("delete_history", delete_history, 0)
 	add_command("help", help, 0)
 	add_command("commands_list", commands_list, 0)
+	add_command("commands", commands, 0)
+	add_command("calc", calculate, 1)
 
 
 func _input(event : InputEvent) -> void:
@@ -92,11 +104,13 @@ func _input(event : InputEvent) -> void:
 						reset_autocomplete()
 			if (event.get_physical_keycode_with_modifiers() == KEY_PAGEUP):
 				var scroll := rich_label.get_v_scroll_bar()
-				scroll.value -= scroll.page - scroll.page * 0.1
+				var tween := create_tween()
+				tween.tween_property(scroll, "value",  scroll.value - (scroll.page - scroll.page * 0.1), 0.1)
 				get_tree().get_root().set_input_as_handled()
 			if (event.get_physical_keycode_with_modifiers() == KEY_PAGEDOWN):
 				var scroll := rich_label.get_v_scroll_bar()
-				scroll.value += scroll.page - scroll.page * 0.1
+				var tween := create_tween()
+				tween.tween_property(scroll, "value",  scroll.value + (scroll.page - scroll.page * 0.1), 0.1)
 				get_tree().get_root().set_input_as_handled()
 			if (event.get_physical_keycode_with_modifiers() == KEY_TAB):
 				autocomplete()
@@ -174,43 +188,67 @@ func print_line(text : String) -> void:
 	if (!rich_label): # Tried to print something before the console was loaded.
 		call_deferred("print_line", text)
 	else:
-		rich_label.add_text(text)
-		rich_label.add_text("\n")
+		rich_label.append_text(text)
+		rich_label.append_text("\n")
 
 
-func on_text_entered(text : String) -> void:
+func on_text_entered(new_text : String) -> void:
 	scroll_to_bottom()
 	reset_autocomplete()
 	line_edit.clear()
-	add_input_history(text)
-	print_line(text)
-	var split_text := text.split(" ", true)
-	if (split_text.size() > 0):
-		var command_string := split_text[0].to_lower()
-		if (console_commands.has(command_string)):
-			var command_entry : ConsoleCommand = console_commands[command_string]
-			match command_entry.param_count:
-				0:
-					command_entry.function.call()
-				1:
-					command_entry.function.call(split_text[1] if split_text.size() > 1 else "")
-				2:
-					command_entry.function.call(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "")
-				3:
-					command_entry.function.call(split_text[1] if split_text.size() > 1 else "", split_text[2] if split_text.size() > 2 else "", split_text[3] if split_text.size() > 3 else "")
-				_:
-					print_line("Commands with more than 3 parameters not supported.")
+	
+	if not new_text.strip_edges().is_empty():
+		add_input_history(new_text)
+		print_line("[i]> " + new_text + "[/i]")
+		var new_text_stripped := new_text.strip_edges()
+		
+		var text_split := new_text_stripped.split(" ")
+		var text_command := text_split[0]
+		
+		if console_commands.has(text_command):
+			var arguments := []
+			for word in text_split.slice(1):
+				arguments.push_back(word.lstrip("\"'").rstrip("\"'"))
+			
+			# calc is a especial command that needs special treatment
+			if text_command.match("calc"):
+				var expression := ""
+				for word in arguments:
+					expression += word
+				console_commands[text_command].function.callv([expression])
+				return
+			
+			if arguments.size() < console_commands[text_command].required:
+				print_line("[color=light_coral]	ERROR:[/color] Too few arguments! Required < %d >" % console_commands[text_command].required)
+				return
+			elif arguments.size() > console_commands[text_command].arguments.size():
+				print_line("[color=light_coral]	ERROR:[/color] Too many arguments! < %d > Max" % console_commands[text_command].arguments.size())
+				return
+			
+			console_commands[text_command].function.callv(arguments)
 		else:
 			emit_signal("console_unknown_command")
-			print_line("Command not found.")
+			print_line("[color=light_coral]	ERROR:[/color] Command not found.")
 
 
 func on_line_edit_text_changed(new_text : String) -> void:
 	reset_autocomplete()
 
 
-func add_command(command_name : String, function : Callable, param_count : int = 0) -> void:
-	console_commands[command_name] = ConsoleCommand.new(function, param_count)
+func add_command(command_name : String, function : Callable, arguments = [], required: int = 0, description : String = "") -> void:
+	if arguments is int:
+		# Legacy call using an argument number
+		var param_array : PackedStringArray
+		for i in range(arguments):
+			param_array.append("arg_" + str(i + 1))
+		console_commands[command_name] = ConsoleCommand.new(function, param_array, required, description)
+		
+	elif arguments is Array:
+		# New array argument system
+		var str_args : PackedStringArray
+		for argument in arguments:
+			str_args.append(str(argument))
+		console_commands[command_name] = ConsoleCommand.new(function, str_args, required, description)
 
 
 func remove_command(command_name : String) -> void:
@@ -232,20 +270,41 @@ func delete_history() -> void:
 
 
 func help() -> void:
-	rich_label.add_text("\
-	\n\
-	Built in commands:\n\
-		'clear' : Clears the current registry view\n\
-		'commands_list': Shows a list of all the currently registered commands\n\
-		'delete_hystory' : Deletes the commands history\n\
-		'quit' : Quits the game\n\
-	Controls:\n\
-		Up and Down arrow keys to navigate commands history\n\
-		PageUp and PageDown to navigate registry history\n\
-		Ctr+Tilde to change console size between half screen and full creen\n\
-		Tilde or Esc to close the console\n\
-		Tab for basic autocomplete\n\
-	\n")
+	rich_label.append_text("	Built in commands:
+		[color=light_green]calc[/color]: Calculates a given expresion
+		[color=light_green]clear[/color]: Clears the registry view
+		[color=light_green]commands[/color]: Shows a reduced list of all the currently registered commands
+		[color=light_green]commands_list[/color]: Shows a detailed list of all the currently registered commands
+		[color=light_green]delete_hystory[/color]: Deletes the commands history
+		[color=light_green]quit[/color]: Quits the game
+	Controls:
+		[color=light_blue]Up[/color] and [color=light_blue]Down[/color] arrow keys to navigate commands history
+		[color=light_blue]PageUp[/color] and [color=light_blue]PageDown[/color] to scroll registry
+		[[color=light_blue]Ctr[/color] + [color=light_blue]~[/color]] to change console size between half screen and full screen
+		[color=light_blue]~[/color] or [color=light_blue]Esc[/color] key to close the console
+		[color=light_blue]Tab[/color] key to autocomplete, [color=light_blue]Tab[/color] again to cycle between matching suggestions\n\n")
+
+
+func calculate(command : String) -> void:
+	var expression := Expression.new()
+	var error = expression.parse(command)
+	if error:
+		print_line("[color=light_coral]	ERROR: [/color] %s" % expression.get_error_text())
+		return
+	var result = expression.execute()
+	if not expression.has_execute_failed():
+		print_line(str(result))
+	else:
+		print_line("[color=light_coral]	ERROR: [/color] %s" % expression.get_error_text())
+
+
+func commands() -> void:
+	var commands := []
+	for command in console_commands:
+		commands.append(str(command))
+	commands.sort()
+	rich_label.append_text("	")
+	rich_label.append_text(str(commands) + "\n\n")
 
 
 func commands_list() -> void:
@@ -253,7 +312,17 @@ func commands_list() -> void:
 	for command in console_commands:
 		commands.append(str(command))
 	commands.sort()
-	rich_label.add_text(str(commands) + "\n\n")
+	
+	for command in commands:
+		var arguments_string := ""
+		var description : String = console_commands[command].description
+		for i in range(console_commands[command].arguments.size()):
+			if i < console_commands[command].required:
+				arguments_string += "  [color=cornflower_blue]<" + console_commands[command].arguments[i] + ">[/color]"
+			else:
+				arguments_string += "  <" + console_commands[command].arguments[i] + ">"
+		rich_label.append_text("	[color=light_green]%s[/color][color=gray]%s[/color]:   %s\n" % [command, arguments_string, description])
+	rich_label.append_text("\n")
 
 
 func add_input_history(text : String) -> void:
