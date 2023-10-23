@@ -26,6 +26,7 @@ var console_commands := {}
 var console_history := []
 var console_history_index := 0
 
+var pause_enabled: bool = true
 
 func _ready() -> void:
 	var canvas_layer := CanvasLayer.new()
@@ -164,11 +165,10 @@ func toggle_size() -> void:
 	else:
 		control.anchor_bottom = 1.0
 
-
 func toggle_console() -> void:
 	control.visible = !control.visible
 	if (control.visible):
-		get_tree().paused = true
+		get_tree().paused = pause_enabled
 		line_edit.grab_focus()
 		emit_signal("console_opened")
 	else:

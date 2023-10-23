@@ -26,4 +26,12 @@ func param_test_function(param1 : String):
 
 The "quit"/"exit" command is implemented by default.
 
+By default the console pauses the tree (to give the user time to enter commands). If this is undesirable behaviour to you, you can change that behaviour by setting the `pause_enabled` variable accordingly.
+
+```gdscript
+func _ready_():
+  Console.pause_enabled = false
+  # Console will now NOT pause the tree when being opened
+```
+
 If you prefer to use C#, you might want to check out the C# console by Moliko here: https://github.com/MolikoDeveloper/Csharp-Console-Godot
