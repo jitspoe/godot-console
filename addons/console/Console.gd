@@ -177,7 +177,8 @@ func toggle_console() -> void:
 		control.anchor_bottom = 1.0
 		scroll_to_bottom()
 		reset_autocomplete()
-		get_tree().paused = was_paused_already
+		if (pause_enabled && !was_paused_already):
+			get_tree().paused = false
 		emit_signal("console_closed")
 
 
