@@ -26,7 +26,8 @@ var console_commands := {}
 var console_history := []
 var console_history_index := 0
 
-var pause_enabled: bool = true
+var pause_enabled: bool = false
+var was_paused_already: bool = false
 
 func _ready() -> void:
 	var canvas_layer := CanvasLayer.new()
@@ -168,14 +169,15 @@ func toggle_size() -> void:
 func toggle_console() -> void:
 	control.visible = !control.visible
 	if (control.visible):
-		get_tree().paused = pause_enabled
+		was_paused_already = get_tree().paused
+		get_tree().paused = was_paused_already or pause_enabled
 		line_edit.grab_focus()
 		emit_signal("console_opened")
 	else:
 		control.anchor_bottom = 1.0
 		scroll_to_bottom()
 		reset_autocomplete()
-		get_tree().paused = false
+		get_tree().paused = was_paused_already
 		emit_signal("console_closed")
 
 
