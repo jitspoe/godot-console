@@ -64,6 +64,8 @@ func _ready() -> void:
 	add_command("commands_list", commands_list, 0)
 	add_command("commands", commands, 0)
 	add_command("calc", calculate, 1)
+	for command in console_history:
+		print_line(command)
 
 
 func _input(event : InputEvent) -> void:
