@@ -1,5 +1,9 @@
 extends Node
 
+var enabled := true
+var enable_on_release_build := false : set = set_enable_on_release_build
+var pause_enabled := false
+var was_paused_already := false
 
 signal console_opened
 signal console_closed
@@ -26,8 +30,6 @@ var console_commands := {}
 var console_history := []
 var console_history_index := 0
 
-var pause_enabled: bool = false
-var was_paused_already: bool = false
 
 func _ready() -> void:
 	var canvas_layer := CanvasLayer.new()
@@ -166,20 +168,38 @@ func toggle_size() -> void:
 	else:
 		control.anchor_bottom = 1.0
 
+
+func disable():
+	enabled = false
+	toggle_console() # Ensure hidden if opened
+
+
+func enable():
+	enabled = true
+
+
 func toggle_console() -> void:
-	control.visible = !control.visible
+	if (enabled):
+		control.visible = !control.visible
+	else:
+		control.visible = false
+
 	if (control.visible):
 		was_paused_already = get_tree().paused
-		get_tree().paused = was_paused_already or pause_enabled
+		get_tree().paused = was_paused_already || pause_enabled
 		line_edit.grab_focus()
-		emit_signal("console_opened")
+		console_opened.emit()
 	else:
 		control.anchor_bottom = 1.0
 		scroll_to_bottom()
 		reset_autocomplete()
 		if (pause_enabled && !was_paused_already):
 			get_tree().paused = false
-		emit_signal("console_closed")
+		console_closed.emit()
+
+
+func is_visible():
+	return control.visible
 
 
 func scroll_to_bottom() -> void:
@@ -187,12 +207,14 @@ func scroll_to_bottom() -> void:
 	scroll.value = scroll.max_value - scroll.page
 
 
-func print_line(text : String) -> void:
+func print_line(text : String, print_godot := false) -> void:
 	if (!rich_label): # Tried to print something before the console was loaded.
 		call_deferred("print_line", text)
 	else:
 		rich_label.append_text(text)
 		rich_label.append_text("\n")
+		if (print_godot):
+			print(text)
 
 
 func on_text_entered(new_text : String) -> void:
@@ -353,3 +375,9 @@ func _exit_tree() -> void:
 				console_history_file.store_line(line)
 			write_index += 1
 
+
+func set_enable_on_release_build(enable : bool):
+	enable_on_release_build = enable
+	if (!enable_on_release_build):
+		if (!OS.is_debug_build()):
+			disable()
