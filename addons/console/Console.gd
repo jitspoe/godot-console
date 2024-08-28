@@ -3,7 +3,6 @@ extends Node
 var enabled := true
 var enable_on_release_build := false : set = set_enable_on_release_build
 var pause_enabled := false
-var was_paused_already := false
 
 signal console_opened
 signal console_closed
@@ -29,6 +28,7 @@ class ConsoleCommand:
 var console_commands := {}
 var console_history := []
 var console_history_index := 0
+var was_paused_already := false
 
 
 func _ready() -> void:
@@ -217,6 +217,43 @@ func print_line(text : String, print_godot := false) -> void:
 			print(text)
 
 
+func parse_line_input(text : String) -> PackedStringArray:
+	var out_array : PackedStringArray
+	var first_char := true
+	var in_quotes := false
+	var escaped := false
+	var token : String
+	for c in text:
+		if (c == '\\'):
+			escaped = true
+			continue
+		elif (escaped):
+			if (c == 'n'):
+				c = '\n'
+			elif (c == 't'):
+				c = '\t'
+			elif (c == 'r'):
+				c = '\r'
+			elif (c == 'a'):
+				c = '\a'
+			elif (c == 'b'):
+				c = '\b'
+			elif (c == 'f'):
+				c = '\f'
+			escaped = false
+		elif (c == '\"'):
+			in_quotes = !in_quotes
+			continue
+		elif (c == ' ' || c == '\t'):
+			if (!in_quotes):
+				out_array.push_back(token)
+				token = ""
+				continue
+		token += c
+	out_array.push_back(token)
+	return out_array
+
+
 func on_text_entered(new_text : String) -> void:
 	scroll_to_bottom()
 	reset_autocomplete()
@@ -225,15 +262,11 @@ func on_text_entered(new_text : String) -> void:
 	if not new_text.strip_edges().is_empty():
 		add_input_history(new_text)
 		print_line("[i]> " + new_text + "[/i]")
-		var new_text_stripped := new_text.strip_edges()
-		
-		var text_split := new_text_stripped.split(" ")
+		var text_split := parse_line_input(new_text)
 		var text_command := text_split[0]
 		
 		if console_commands.has(text_command):
-			var arguments := []
-			for word in text_split.slice(1):
-				arguments.push_back(word.lstrip("\"'").rstrip("\"'"))
+			var arguments := text_split.slice(1)
 			
 			# calc is a especial command that needs special treatment
 			if text_command.match("calc"):
@@ -249,10 +282,14 @@ func on_text_entered(new_text : String) -> void:
 			elif arguments.size() > console_commands[text_command].arguments.size():
 				print_line("[color=light_coral]	ERROR:[/color] Too many arguments! < %d > Max" % console_commands[text_command].arguments.size())
 				return
-			
+
+			# Functions fail to call if passed the incorrect number of arguments, so fill out with blank strings.
+			while (arguments.size() < console_commands[text_command].arguments.size()):
+				arguments.append("")
+
 			console_commands[text_command].function.callv(arguments)
 		else:
-			emit_signal("console_unknown_command")
+			console_unknown_command.emit(text_command)
 			print_line("[color=light_coral]	ERROR:[/color] Command not found.")
 
 
