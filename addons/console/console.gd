@@ -21,17 +21,47 @@ class ConsoleCommand:
 		description = in_description
 
 
-@onready var control := Control.new()
-@onready var rich_label := RichTextLabel.new()
-@onready var line_edit := LineEdit.new()
+var control := Control.new()
+
+# If you want to customize the way the console looks, you can direcly modify
+# the properties of the rich text and line edit here:
+var rich_label := RichTextLabel.new()
+var line_edit := LineEdit.new()
 
 var console_commands := {}
 var console_history := []
 var console_history_index := 0
 var was_paused_already := false
 
+# Usage: Console.add_command("command_name", <function to call>, <number of arguments or array of argument names>, <required number of arguments>, "Help description")
+func add_command(command_name : String, function : Callable, arguments = [], required: int = 0, description : String = "") -> void:
+	if arguments is int:
+		# Legacy call using an argument number
+		var param_array : PackedStringArray
+		for i in range(arguments):
+			param_array.append("arg_" + str(i + 1))
+		console_commands[command_name] = ConsoleCommand.new(function, param_array, required, description)
+		
+	elif arguments is Array:
+		# New array argument system
+		var str_args : PackedStringArray
+		for argument in arguments:
+			str_args.append(str(argument))
+		console_commands[command_name] = ConsoleCommand.new(function, str_args, required, description)
 
-func _ready() -> void:
+
+func remove_command(command_name : String) -> void:
+	console_commands.erase(command_name)
+
+
+func _enter_tree() -> void:
+	var console_history_file := FileAccess.open("user://console_history.txt", FileAccess.READ)
+	if (console_history_file):
+		while (!console_history_file.eof_reached()):
+			var line := console_history_file.get_line()
+			if (line.length()):
+				add_input_history(line)
+
 	var canvas_layer := CanvasLayer.new()
 	canvas_layer.layer = 3
 	add_child(canvas_layer)
@@ -58,14 +88,28 @@ func _ready() -> void:
 	line_edit.text_changed.connect(on_line_edit_text_changed)
 	control.visible = false
 	process_mode = PROCESS_MODE_ALWAYS
-	add_command("quit", quit, 0)
-	add_command("exit", quit, 0)
-	add_command("clear", clear, 0)
-	add_command("delete_history", delete_history, 0)
-	add_command("help", help, 0)
-	add_command("commands_list", commands_list, 0)
-	add_command("commands", commands, 0)
-	add_command("calc", calculate, 1)
+
+
+func _exit_tree() -> void:
+	var console_history_file := FileAccess.open("user://console_history.txt", FileAccess.WRITE)
+	if (console_history_file):
+		var write_index := 0
+		var start_write_index := console_history.size() - 100 # Max lines to write
+		for line in console_history:
+			if (write_index >= start_write_index):
+				console_history_file.store_line(line)
+			write_index += 1
+
+
+func _ready() -> void:
+	add_command("quit", quit, 0, 0, "Quits the game.")
+	add_command("exit", quit, 0, 0, "Quits the game.")
+	add_command("clear", clear, 0, 0, "Clears the text on the console.")
+	add_command("delete_history", delete_history, 0, 0, "Deletes the history of previously entered commands.")
+	add_command("help", help, 0, 0, "Displays instructions on how to use the console.")
+	add_command("commands_list", commands_list, 0, 0, "Lists all commands and their descriptions.")
+	add_command("commands", commands, 0, 0, "Lists commands with no descriptions.")
+	add_command("calc", calculate, ["mathematical expression to evaluate"], 0, "Evaluates the math passed in for quick arithmetic.")
 
 
 func _input(event : InputEvent) -> void:
@@ -297,26 +341,6 @@ func on_line_edit_text_changed(new_text : String) -> void:
 	reset_autocomplete()
 
 
-func add_command(command_name : String, function : Callable, arguments = [], required: int = 0, description : String = "") -> void:
-	if arguments is int:
-		# Legacy call using an argument number
-		var param_array : PackedStringArray
-		for i in range(arguments):
-			param_array.append("arg_" + str(i + 1))
-		console_commands[command_name] = ConsoleCommand.new(function, param_array, required, description)
-		
-	elif arguments is Array:
-		# New array argument system
-		var str_args : PackedStringArray
-		for argument in arguments:
-			str_args.append(str(argument))
-		console_commands[command_name] = ConsoleCommand.new(function, str_args, required, description)
-
-
-func remove_command(command_name : String) -> void:
-	console_commands.erase(command_name)
-
-
 func quit() -> void:
 	get_tree().quit()
 
@@ -391,26 +415,6 @@ func add_input_history(text : String) -> void:
 	if (!console_history.size() || text != console_history.back()): # Don't add consecutive duplicates
 		console_history.append(text)
 	console_history_index = console_history.size()
-
-
-func _enter_tree() -> void:
-	var console_history_file := FileAccess.open("user://console_history.txt", FileAccess.READ)
-	if (console_history_file):
-		while (!console_history_file.eof_reached()):
-			var line := console_history_file.get_line()
-			if (line.length()):
-				add_input_history(line)
-
-
-func _exit_tree() -> void:
-	var console_history_file := FileAccess.open("user://console_history.txt", FileAccess.WRITE)
-	if (console_history_file):
-		var write_index := 0
-		var start_write_index := console_history.size() - 100 # Max lines to write
-		for line in console_history:
-			if (write_index >= start_write_index):
-				console_history_file.store_line(line)
-			write_index += 1
 
 
 func set_enable_on_release_build(enable : bool):
