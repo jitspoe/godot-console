@@ -250,6 +250,9 @@ func scroll_to_bottom() -> void:
 	var scroll: ScrollBar = rich_label.get_v_scroll_bar()
 	scroll.value = scroll.max_value - scroll.page
 
+func print_error(text : String, print_godot := false) -> void:
+	print_line("[color=light_coral]	   ERROR:[/color] %s" % text, print_godot)
+
 
 func print_line(text : String, print_godot := false) -> void:
 	if (!rich_label): # Tried to print something before the console was loaded.
@@ -321,10 +324,10 @@ func on_text_entered(new_text : String) -> void:
 				return
 			
 			if arguments.size() < console_commands[text_command].required:
-				print_line("[color=light_coral]	ERROR:[/color] Too few arguments! Required < %d >" % console_commands[text_command].required)
+				print_error("Too few arguments! Required < %d >" % console_commands[text_command].required)
 				return
 			elif arguments.size() > console_commands[text_command].arguments.size():
-				print_line("[color=light_coral]	ERROR:[/color] Too many arguments! < %d > Max" % console_commands[text_command].arguments.size())
+				print_error("Too many arguments! < %d > Max" % console_commands[text_command].arguments.size())
 				return
 
 			# Functions fail to call if passed the incorrect number of arguments, so fill out with blank strings.
@@ -334,7 +337,7 @@ func on_text_entered(new_text : String) -> void:
 			console_commands[text_command].function.callv(arguments)
 		else:
 			console_unknown_command.emit(text_command)
-			print_line("[color=light_coral]	ERROR:[/color] Command not found.")
+			print_error("Command not found.")
 
 
 func on_line_edit_text_changed(new_text : String) -> void:
@@ -375,13 +378,13 @@ func calculate(command : String) -> void:
 	var expression := Expression.new()
 	var error = expression.parse(command)
 	if error:
-		print_line("[color=light_coral]	ERROR: [/color] %s" % expression.get_error_text())
+		print_error("%s" % expression.get_error_text())
 		return
 	var result = expression.execute()
 	if not expression.has_execute_failed():
 		print_line(str(result))
 	else:
-		print_line("[color=light_coral]	ERROR: [/color] %s" % expression.get_error_text())
+		print_error("%s" % expression.get_error_text())
 
 
 func commands() -> void:
