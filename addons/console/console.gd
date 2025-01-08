@@ -364,7 +364,7 @@ func help() -> void:
 		[color=light_green]clear[/color]: Clears the registry view
 		[color=light_green]commands[/color]: Shows a reduced list of all the currently registered commands
 		[color=light_green]commands_list[/color]: Shows a detailed list of all the currently registered commands
-		[color=light_green]delete_hystory[/color]: Deletes the commands history
+		[color=light_green]delete_history[/color]: Deletes the commands history
 		[color=light_green]quit[/color]: Quits the game
 	Controls:
 		[color=light_blue]Up[/color] and [color=light_blue]Down[/color] arrow keys to navigate commands history
