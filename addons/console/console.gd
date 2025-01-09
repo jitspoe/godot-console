@@ -29,11 +29,12 @@ var rich_label := RichTextLabel.new()
 var line_edit := LineEdit.new()
 
 var console_commands := {}
+var command_parameters := {}
 var console_history := []
 var console_history_index := 0
 var was_paused_already := false
 
-# Usage: Console.add_command("command_name", <function to call>, <number of arguments or array of argument names>, <required number of arguments>, "Help description")
+## Usage: Console.add_command("command_name", <function to call>, <number of arguments or array of argument names>, <required number of arguments>, "Help description")
 func add_command(command_name : String, function : Callable, arguments = [], required: int = 0, description : String = "") -> void:
 	if arguments is int:
 		# Legacy call using an argument number
@@ -50,8 +51,16 @@ func add_command(command_name : String, function : Callable, arguments = [], req
 		console_commands[command_name] = ConsoleCommand.new(function, str_args, required, description)
 
 
+## Removes a command from the console.  This should be called on a script's _exit_tree()
+## if you have console commands for things that are unloaded before the project closes.
 func remove_command(command_name : String) -> void:
 	console_commands.erase(command_name)
+	command_parameters.erase(command_name)
+
+
+## Useful if you have a list of possible parameters (ex: level names).
+func add_command_autocomplete_list(command_name : String, param_list : PackedStringArray):
+	command_parameters[command_name] = param_list
 
 
 func _enter_tree() -> void:
@@ -182,21 +191,30 @@ func autocomplete() -> void:
 	else:
 		suggesting = true
 		
-		var sorted_commands := []
-		for command in console_commands:
-			sorted_commands.append(str(command))
-		sorted_commands.sort()
-		sorted_commands.reverse()
-		
-		var prev_index := 0
-		for command in sorted_commands:
-			if command.contains(line_edit.text):
-				var index : int = command.find(line_edit.text)
-				if index <= prev_index:
-					suggestions.push_front(command)
-				else:
-					suggestions.push_back(command)
-				prev_index = index
+		if (" " in line_edit.text): # We're searching for a parameter to autocomplete
+			var split_text := parse_line_input(line_edit.text)
+			if (split_text.size() > 1):
+				var command := split_text[0]
+				var param_input := split_text[1]
+				for param in command_parameters[command]:
+					if (param_input in param):
+						suggestions.append(str(command, " ", param))
+		else:
+			var sorted_commands := []
+			for command in console_commands:
+				sorted_commands.append(str(command))
+			sorted_commands.sort()
+			sorted_commands.reverse()
+			
+			var prev_index := 0
+			for command in sorted_commands:
+				if (!line_edit.text || command.contains(line_edit.text)):
+					var index : int = command.find(line_edit.text)
+					if index <= prev_index:
+						suggestions.push_front(command)
+					else:
+						suggestions.push_back(command)
+					prev_index = index
 		autocomplete()
 
 
@@ -249,6 +267,7 @@ func is_visible():
 func scroll_to_bottom() -> void:
 	var scroll: ScrollBar = rich_label.get_v_scroll_bar()
 	scroll.value = scroll.max_value - scroll.page
+
 
 func print_error(text : String, print_godot := false) -> void:
 	print_line("[color=light_coral]	   ERROR:[/color] %s" % text, print_godot)
