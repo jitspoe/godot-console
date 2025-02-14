@@ -14,6 +14,7 @@ class ConsoleCommand:
 	var arguments : PackedStringArray
 	var required : int
 	var description : String
+	var hidden : bool
 	func _init(in_function : Callable, in_arguments : PackedStringArray, in_required : int = 0, in_description : String = ""):
 		function = in_function
 		arguments = in_arguments
@@ -36,19 +37,24 @@ var was_paused_already := false
 
 ## Usage: Console.add_command("command_name", <function to call>, <number of arguments or array of argument names>, <required number of arguments>, "Help description")
 func add_command(command_name : String, function : Callable, arguments = [], required: int = 0, description : String = "") -> void:
-	if arguments is int:
+	if (arguments is int):
 		# Legacy call using an argument number
 		var param_array : PackedStringArray
 		for i in range(arguments):
 			param_array.append("arg_" + str(i + 1))
 		console_commands[command_name] = ConsoleCommand.new(function, param_array, required, description)
-		
-	elif arguments is Array:
+	elif (arguments is Array):
 		# New array argument system
 		var str_args : PackedStringArray
 		for argument in arguments:
 			str_args.append(str(argument))
 		console_commands[command_name] = ConsoleCommand.new(function, str_args, required, description)
+
+
+## Adds a secret command that will not show up in the help or auto-complete.
+func add_hidden_command(command_name : String, function : Callable, arguments = [], required : int = 0) -> void:
+	add_command(command_name, function, arguments, required)
+	console_commands[command_name].hidden = true
 
 
 ## Removes a command from the console.  This should be called on a script's _exit_tree()
@@ -177,13 +183,14 @@ func _input(event : InputEvent) -> void:
 var suggestions := []
 var current_suggest := 0
 var suggesting := false
+
 func autocomplete() -> void:
-	if suggesting:
+	if (suggesting):
 		for i in range(suggestions.size()):
-			if current_suggest == i:
+			if (current_suggest == i):
 				line_edit.text = str(suggestions[i])
 				line_edit.caret_column = line_edit.text.length()
-				if current_suggest == suggestions.size() - 1:
+				if (current_suggest == suggestions.size() - 1):
 					current_suggest = 0
 				else:
 					current_suggest += 1
@@ -196,14 +203,15 @@ func autocomplete() -> void:
 			if (split_text.size() > 1):
 				var command := split_text[0]
 				var param_input := split_text[1]
-				if command_parameters.has(command):
-				for param in command_parameters[command]:
-					if (param_input in param):
-						suggestions.append(str(command, " ", param))
+				if (command_parameters.has(command)):
+					for param in command_parameters[command]:
+						if (param_input in param):
+							suggestions.append(str(command, " ", param))
 		else:
 			var sorted_commands := []
 			for command in console_commands:
-				sorted_commands.append(str(command))
+				if (!console_commands[command].hidden):
+					sorted_commands.append(str(command))
 			sorted_commands.sort()
 			sorted_commands.reverse()
 			
@@ -211,7 +219,7 @@ func autocomplete() -> void:
 			for command in sorted_commands:
 				if (!line_edit.text || command.contains(line_edit.text)):
 					var index : int = command.find(line_edit.text)
-					if index <= prev_index:
+					if (index <= prev_index):
 						suggestions.push_front(command)
 					else:
 						suggestions.push_back(command)
@@ -349,27 +357,27 @@ func on_text_entered(new_text : String) -> void:
 		
 		if console_commands.has(text_command):
 			var arguments := text_split.slice(1)
+			var console_command : ConsoleCommand = console_commands[text_command]
 			
 			# calc is a especial command that needs special treatment
-			if text_command.match("calc"):
+			if (text_command.match("calc")):
 				var expression := ""
 				for word in arguments:
 					expression += word
-				console_commands[text_command].function.callv([expression])
+				console_command.function.callv([expression])
 				return
-			
-			if arguments.size() < console_commands[text_command].required:
-				print_error("Too few arguments! Required < %d >" % console_commands[text_command].required)
+
+			if (arguments.size() < console_command.required):
+				print_error("Too few arguments! Required < %d >" % console_command.required)
 				return
-			elif arguments.size() > console_commands[text_command].arguments.size():
-				print_error("Too many arguments! < %d > Max" % console_commands[text_command].arguments.size())
-				return
+			elif (arguments.size() > console_command.arguments.size()):
+				arguments.resize(console_command.arguments.size())
 
 			# Functions fail to call if passed the incorrect number of arguments, so fill out with blank strings.
-			while (arguments.size() < console_commands[text_command].arguments.size()):
+			while (arguments.size() < console_command.arguments.size()):
 				arguments.append("")
 
-			console_commands[text_command].function.callv(arguments)
+			console_command.function.callv(arguments)
 		else:
 			console_unknown_command.emit(text_command)
 			print_error("Command not found.")
@@ -425,7 +433,8 @@ func calculate(command : String) -> void:
 func commands() -> void:
 	var commands := []
 	for command in console_commands:
-		commands.append(str(command))
+		if (!console_commands[command].hidden):
+			commands.append(str(command))
 	commands.sort()
 	rich_label.append_text("	")
 	rich_label.append_text(str(commands) + "\n\n")
@@ -434,7 +443,8 @@ func commands() -> void:
 func commands_list() -> void:
 	var commands := []
 	for command in console_commands:
-		commands.append(str(command))
+		if (!console_commands[command].hidden):
+			commands.append(str(command))
 	commands.sort()
 	
 	for command in commands:
