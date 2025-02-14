@@ -197,9 +197,9 @@ func autocomplete() -> void:
 				var command := split_text[0]
 				var param_input := split_text[1]
 				if command_parameters.has(command):
-					for param in command_parameters[command]:
-						if (param_input in param):
-							suggestions.append(str(command, " ", param))
+				for param in command_parameters[command]:
+					if (param_input in param):
+						suggestions.append(str(command, " ", param))
 		else:
 			var sorted_commands := []
 			for command in console_commands:
@@ -339,6 +339,7 @@ func on_text_entered(new_text : String) -> void:
 	scroll_to_bottom()
 	reset_autocomplete()
 	line_edit.clear()
+	line_edit.call_deferred(&"edit")
 	
 	if not new_text.strip_edges().is_empty():
 		add_input_history(new_text)
