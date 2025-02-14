@@ -275,6 +275,16 @@ func print_error(text : Variant, print_godot := false) -> void:
 		text = str(text)
 	print_line("[color=light_coral]	   ERROR:[/color] %s" % text, print_godot)
 
+func print_info(text : Variant, print_godot := false) -> void:
+	if not text is String:
+		text = str(text)
+	print_line("[color=light_blue]	   INFO:[/color] %s" % text, print_godot)
+	
+func print_warning(text : Variant, print_godot := false) -> void:
+	if not text is String:
+		text = str(text)
+	print_line("[color=gold]	   WARNING:[/color] %s" % text, print_godot)
+
 
 func print_line(text : Variant, print_godot := false) -> void:
 	if not text is String:
@@ -393,7 +403,7 @@ func help() -> void:
 	Controls:
 		[color=light_blue]Up[/color] and [color=light_blue]Down[/color] arrow keys to navigate commands history
 		[color=light_blue]PageUp[/color] and [color=light_blue]PageDown[/color] to scroll registry
-		[[color=light_blue]Ctr[/color] + [color=light_blue]~[/color]] to change console size between half screen and full screen
+		[[color=light_blue]Ctrl[/color] + [color=light_blue]~[/color]] to change console size between half screen and full screen
 		[color=light_blue]~[/color] or [color=light_blue]Esc[/color] key to close the console
 		[color=light_blue]Tab[/color] key to autocomplete, [color=light_blue]Tab[/color] again to cycle between matching suggestions\n\n")
 
