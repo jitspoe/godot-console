@@ -347,7 +347,8 @@ func on_text_entered(new_text : String) -> void:
 	scroll_to_bottom()
 	reset_autocomplete()
 	line_edit.clear()
-	line_edit.call_deferred(&"edit")
+	if (line_edit.has_method(&"edit")):
+		line_edit.call_deferred(&"edit")
 	
 	if not new_text.strip_edges().is_empty():
 		add_input_history(new_text)
