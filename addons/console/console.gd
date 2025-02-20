@@ -125,7 +125,13 @@ func _ready() -> void:
 	add_command("commands_list", commands_list, 0, 0, "Lists all commands and their descriptions.")
 	add_command("commands", commands, 0, 0, "Lists commands with no descriptions.")
 	add_command("calc", calculate, ["mathematical expression to evaluate"], 0, "Evaluates the math passed in for quick arithmetic.")
-
+	add_command("echo", print_line, ["string"], 1, "Prints given string to the console.")
+	add_command("echo_warning", print_warning, ["string"], 1, "Prints given string as warning to the console.")
+	add_command("echo_info", print_info, ["string"], 1, "Prints given string as info to the console.")
+	add_command("echo_error", print_error, ["string"], 1, "Prints given string as an error to the console.")
+	add_command("pause", pause, 0, 0, "Pauses node processing.")
+	add_command("unpause", unpause, 0, 0, "Unpauses node processing.")
+	add_command("exec", exec, 1, 1, "Execute a script.")
 
 func _input(event : InputEvent) -> void:
 	if (event is InputEventKey):
@@ -409,6 +415,12 @@ func help() -> void:
 		[color=light_green]commands[/color]: Shows a reduced list of all the currently registered commands
 		[color=light_green]commands_list[/color]: Shows a detailed list of all the currently registered commands
 		[color=light_green]delete_history[/color]: Deletes the commands history
+		[color=light_green]echo[/color]: Prints a given string to the console
+		[color=light_green]echo_error[/color]: Prints a given string as an error to the console
+		[color=light_green]echo_info[/color]: Prints a given string as info to the console
+		[color=light_green]echo_warning[/color]: Prints a given string as warning to the console
+		[color=light_green]pause[/color]: Pauses node processing
+		[color=light_green]unpause[/color]: Unpauses node processing
 		[color=light_green]quit[/color]: Quits the game
 	Controls:
 		[color=light_blue]Up[/color] and [color=light_blue]Down[/color] arrow keys to navigate commands history
@@ -471,3 +483,19 @@ func set_enable_on_release_build(enable : bool):
 	if (!enable_on_release_build):
 		if (!OS.is_debug_build()):
 			disable()
+
+
+func pause() -> void:
+	get_tree().paused = true
+	
+func unpause() -> void:
+	get_tree().paused = false
+	
+func exec(filename : String) -> void:
+	var path := "user://%s.txt" % [filename]
+	var script := FileAccess.open(path, FileAccess.READ)
+	if (script):
+		while (!script.eof_reached()):
+			on_text_entered(script.get_line())
+	else:
+		print_error("File %s not found." % [path])
