@@ -287,17 +287,19 @@ func scroll_to_bottom() -> void:
 func print_error(text : Variant, print_godot := false) -> void:
 	if not text is String:
 		text = str(text)
-	print_line("[color=light_coral]	   ERROR:[/color] %s" % text, print_godot)
+	print_line("	   [color=light_coral]ERROR:[/color] %s" % text, print_godot)
+
 
 func print_info(text : Variant, print_godot := false) -> void:
 	if not text is String:
 		text = str(text)
-	print_line("[color=light_blue]	   INFO:[/color] %s" % text, print_godot)
-	
+	print_line("	   [color=light_blue]INFO:[/color] %s" % text, print_godot)
+
+
 func print_warning(text : Variant, print_godot := false) -> void:
 	if not text is String:
 		text = str(text)
-	print_line("[color=gold]	   WARNING:[/color] %s" % text, print_godot)
+	print_line("	   [color=gold]WARNING:[/color] %s" % text, print_godot)
 
 
 func print_line(text : Variant, print_godot := false) -> void:
@@ -309,7 +311,7 @@ func print_line(text : Variant, print_godot := false) -> void:
 		rich_label.append_text(text)
 		rich_label.append_text("\n")
 		if (print_godot):
-			print(text)
+			print_rich(text.dedent())
 
 
 func parse_line_input(text : String) -> PackedStringArray:
