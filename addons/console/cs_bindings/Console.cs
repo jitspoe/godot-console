@@ -15,6 +15,13 @@ public partial class Console : Node{
         AddChild((Node)console);
     }
 
+    public static void ConnectConsoleOpened(Callable callable) => console.Connect("console_opened", callable);
+    public static void DisconnectConsoleOpened(Callable callable) => console.Disconnect("console_opened", callable);
+    public static void ConnectConsoleClosed(Callable callable) => console.Connect("console_closed", callable);
+    public static void DisconnectConsoleClosed(Callable callable) => console.Disconnect("console_closed", callable);
+    public static void ConnectConsoleUnknownCommand(Callable callable) => console.Connect("console_unknown_command", callable);
+    public static void DisconnectConsoleUnknownCommand(Callable callable) => console.Disconnect("console_unknown_command", callable);
+
     public static void AddCommand(string commandName, Callable function, Array<string> arguments, int required = 0, string description = "") => console.Call("add_command", commandName, function, arguments, required, description);
     public static void AddHiddenCommand(string commandName, Callable function, Array<string> arguments, int required) => console.Call("add_hidden_command", commandName, function, arguments, required);
     public static void RemoveCommand(string commandName) => console.Call("remove_command", commandName);
