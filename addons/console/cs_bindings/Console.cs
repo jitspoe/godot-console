@@ -31,10 +31,7 @@ public partial class Console : Node{
     public static void ToggleConsole() => console.Call("toggle_console");
     public static void IsVisible() => console.Call("is_visible");
     public static void ScrollToBottom() => console.Call("scroll_to_bottom");
-    public static void PrintError(Variant text, bool printGodot = false) => console.Call("print_error", text, printGodot);
-    public static void PrintInfo(Variant text, bool printGodot = false) => console.Call("print_info", text, printGodot);
-    public static void PrintWarning(Variant text, bool printGodot = false) => console.Call("print_warning", text, printGodot);
-    public static void PrintLine(Variant text, bool printGodot = false) => console.Call("print_line", text, printGodot);
+    public static void PrintLine(Variant text, bool printGodot = false, int textType = 0) => console.Call("print_line", text, printGodot, textType);
     public static void SetEnableOnReleaseBuild(bool enable) => console.Call("set_enable_on_release_build", enable);
 
     /*

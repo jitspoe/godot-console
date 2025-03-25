@@ -4,6 +4,14 @@ var enabled := true
 var enable_on_release_build := false : set = set_enable_on_release_build
 var pause_enabled := false
 
+enum text_types {
+	NORMAL,
+	INFO,
+	WARNING,
+	ERROR,
+	MAX,
+}
+
 signal console_opened
 signal console_closed
 signal console_unknown_command
@@ -287,32 +295,38 @@ func scroll_to_bottom() -> void:
 func print_error(text : Variant, print_godot := false) -> void:
 	if not text is String:
 		text = str(text)
-	print_line("	   [color=light_coral]ERROR:[/color] %s" % text, print_godot)
-
+	print_line(text, print_godot, text_types.ERROR)
 
 func print_info(text : Variant, print_godot := false) -> void:
 	if not text is String:
 		text = str(text)
-	print_line("	   [color=light_blue]INFO:[/color] %s" % text, print_godot)
-
+	print_line(text, print_godot, text_types.INFO)
 
 func print_warning(text : Variant, print_godot := false) -> void:
 	if not text is String:
 		text = str(text)
-	print_line("	   [color=gold]WARNING:[/color] %s" % text, print_godot)
+	print_line(text, print_godot, text_types.WARNING)
 
-
-func print_line(text : Variant, print_godot := false) -> void:
+func print_line(text : Variant, print_godot := false, text_type : text_types = text_types.NORMAL) -> void:
 	if not text is String:
 		text = str(text)
 	if (!rich_label): # Tried to print something before the console was loaded.
 		call_deferred("print_line", text)
 	else:
+		match text_type:
+			text_types.INFO:
+				text = ("	[color=light_blue]INFO:[/color] %s" % [text])
+			text_types.WARNING:
+				text = ("	[color=gold]WARNING:[/color] %s" % [text])
+			text_types.ERROR:
+				if (print_godot):
+					printerr(text)
+					text = ("	[color=light_coral]ERROR:[/color] %s" % [text])
 		rich_label.append_text(text)
 		rich_label.append_text("\n")
 		if (print_godot):
-			print_rich(text.dedent())
-
+			if text_type != text_types.ERROR:
+				print_rich(text.dedent())
 
 func parse_line_input(text : String) -> PackedStringArray:
 	var out_array : PackedStringArray
@@ -377,7 +391,7 @@ func on_text_entered(new_text : String) -> void:
 				return
 
 			if (arguments.size() < console_command.required):
-				print_error("Too few arguments! Required < %d >" % console_command.required)
+				print_line("Too few arguments! Required < %d >" % console_command.required, false, text_types.ERROR)
 				return
 			elif (arguments.size() > console_command.arguments.size()):
 				arguments.resize(console_command.arguments.size())
@@ -389,7 +403,7 @@ func on_text_entered(new_text : String) -> void:
 			console_command.function.callv(arguments)
 		else:
 			console_unknown_command.emit(text_command)
-			print_error("Command not found.")
+			print_line("Command not found.", false, text_types.ERROR)
 
 
 func on_line_edit_text_changed(new_text : String) -> void:
@@ -436,13 +450,13 @@ func calculate(command : String) -> void:
 	var expression := Expression.new()
 	var error = expression.parse(command)
 	if error:
-		print_error("%s" % expression.get_error_text())
+		print_line("%s" % expression.get_error_text(), false, text_types.ERROR)
 		return
 	var result = expression.execute()
 	if not expression.has_execute_failed():
 		print_line(str(result))
 	else:
-		print_error("%s" % expression.get_error_text())
+		print_line("%s" % expression.get_error_text(), false, text_types.ERROR)
 
 
 func commands() -> void:
@@ -500,4 +514,4 @@ func exec(filename : String) -> void:
 		while (!script.eof_reached()):
 			on_text_entered(script.get_line())
 	else:
-		print_error("File %s not found." % [path])
+		print_line("File %s not found." % [path], false, text_types.ERROR)
