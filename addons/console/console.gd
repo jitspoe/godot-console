@@ -3,7 +3,10 @@ extends Node
 var enabled := true
 var enable_on_release_build := false : set = set_enable_on_release_build
 var pause_enabled := false
-var font_size := -1
+var font_size := -1:
+	set(value):
+		font_size = value
+		_update_font_size()
 
 signal console_opened
 signal console_closed
@@ -113,6 +116,28 @@ func _enter_tree() -> void:
 	control.visible = false
 	process_mode = PROCESS_MODE_ALWAYS
 
+func _update_font_size():
+	for node in get_child(0).get_child(0).get_children():
+		if node is RichTextLabel:
+			if font_size > 0:
+				node.add_theme_font_size_override("normal_font_size", font_size)
+				node.add_theme_font_size_override("bold_font_size", font_size)
+				node.add_theme_font_size_override("bold_italics_font_size", font_size)
+				node.add_theme_font_size_override("italics_font_size", font_size)
+				node.add_theme_font_size_override("mono_font_size", font_size)
+			else:
+				node.remove_theme_font_size_override("normal_font_size")
+				node.remove_theme_font_size_override("bold_font_size")
+				node.remove_theme_font_size_override("bold_italics_font_size")
+				node.remove_theme_font_size_override("italics_font_size")
+				node.remove_theme_font_size_override("mono_font_size")
+		elif node is LineEdit:
+			if font_size > 0:
+				node.add_theme_font_size_override("font_size", font_size)
+			else:
+				node.remove_theme_font_size_override("font_size")
+				
+	
 
 func _exit_tree() -> void:
 	var console_history_file := FileAccess.open("user://console_history.txt", FileAccess.WRITE)
