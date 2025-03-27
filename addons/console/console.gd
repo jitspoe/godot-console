@@ -3,6 +3,7 @@ extends Node
 var enabled := true
 var enable_on_release_build := false : set = set_enable_on_release_build
 var pause_enabled := false
+var font_size := -1
 
 signal console_opened
 signal console_closed
@@ -92,12 +93,20 @@ func _enter_tree() -> void:
 	rich_label.anchor_right = 1.0
 	rich_label.anchor_bottom = 0.5
 	rich_label.add_theme_stylebox_override("normal", style)
+	if font_size > 0:
+		rich_label.add_theme_font_size_override("normal_font_size", font_size)
+		rich_label.add_theme_font_size_override("bold_font_size", font_size)
+		rich_label.add_theme_font_size_override("bold_italics_font_size", font_size)
+		rich_label.add_theme_font_size_override("italics_font_size", font_size)
+		rich_label.add_theme_font_size_override("mono_font_size", font_size)
 	control.add_child(rich_label)
 	rich_label.append_text("Development console.\n")
 	line_edit.anchor_top = 0.5
 	line_edit.anchor_right = 1.0
 	line_edit.anchor_bottom = 0.5
 	line_edit.placeholder_text = "Enter \"help\" for instructions"
+	if font_size > 0:
+		line_edit.add_theme_font_size_override("font_size", font_size)
 	control.add_child(line_edit)
 	line_edit.text_submitted.connect(on_text_entered)
 	line_edit.text_changed.connect(on_line_edit_text_changed)
