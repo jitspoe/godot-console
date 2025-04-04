@@ -34,4 +34,13 @@ func _ready_():
   # Console will now pause the tree when being opened
 ```
 
+You can also specify font size in the console:
+```gdscript
+# Set font size to 18
+Console.font_size = 18 
+
+# Reset to default font size
+Console.font_size = -1
+```
+
 If you prefer to use C#, you might want to check out the C# console by Moliko here: https://github.com/MolikoDeveloper/Csharp-Console-Godot
