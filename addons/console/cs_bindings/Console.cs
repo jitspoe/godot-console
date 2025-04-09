@@ -7,6 +7,7 @@ public partial class Console : Node{
     public static bool Enabled{ get{return console.Get("enabled").AsBool();} }
     public static bool EnabledOnReleaseBuild{ get{return console.Get("enabled_on_release_build").AsBool();} }
     public static bool PauseEnabled{ get{return console.Get("pause_enabled").AsBool();} set{console.Set("pause_enabled", value);} }
+    public static int FontSize{ get{return console.Get("font_size").AsInt32();} set{console.Set("font_size", value);} }
 
     public static RichTextLabel RichLabel{ get{return (RichTextLabel)console.Get("rich_label").AsGodotObject();} set{console.Set("rich_label", value);} }
     public static LineEdit LineEdit{ get{return (LineEdit)console.Get("line_edit").AsGodotObject();} set{console.Set("line_edit", value);} }
