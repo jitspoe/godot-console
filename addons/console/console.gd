@@ -477,7 +477,7 @@ func help() -> void:
 		[color=light_blue]Up[/color] and [color=light_blue]Down[/color] arrow keys to navigate commands history
 		[color=light_blue]PageUp[/color] and [color=light_blue]PageDown[/color] to scroll registry
 		[[color=light_blue]Ctrl[/color] + [color=light_blue]~[/color]] to change console size between half screen and full screen
-		[[color=light_blue]Ctrl[/color] + [color=light_blue] Mouse Wheel[/color]] up/down to change console font size
+		[[color=light_blue]Ctrl[/color] + [color=light_blue]Mouse Wheel[/color]] up/down to change console font size
 		[color=light_blue]~[/color] or [color=light_blue]Esc[/color] key to close the console
 		[color=light_blue]Tab[/color] key to autocomplete, [color=light_blue]Tab[/color] again to cycle between matching suggestions\n\n")
 
