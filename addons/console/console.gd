@@ -218,6 +218,21 @@ func _input(event : InputEvent) -> void:
 			if (event.get_physical_keycode_with_modifiers() == KEY_TAB):
 				autocomplete()
 				get_tree().get_root().set_input_as_handled()
+	elif event is InputEventMouseButton:
+				if (control.visible):
+					if (event.is_command_or_control_pressed()):
+						if event.button_index == MOUSE_BUTTON_WHEEL_UP: # Increase font size with ctrl+mouse wheel up
+							if font_size <= 0:
+								font_size = 16 # Use default font size of 16
+							font_size = min(128, font_size + 2) # Limit to max of 128
+							_update_font_size()
+							get_tree().get_root().set_input_as_handled()
+						elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN: # Decrease font size with ctrl+mouse wheel down
+							if font_size <= 0:
+								font_size = 16 # Use default font size of 16
+							font_size = max(8, font_size - 2) # Limit to minimum of 8
+							_update_font_size()
+							get_tree().get_root().set_input_as_handled()
 
 
 var suggestions := []
@@ -462,6 +477,7 @@ func help() -> void:
 		[color=light_blue]Up[/color] and [color=light_blue]Down[/color] arrow keys to navigate commands history
 		[color=light_blue]PageUp[/color] and [color=light_blue]PageDown[/color] to scroll registry
 		[[color=light_blue]Ctrl[/color] + [color=light_blue]~[/color]] to change console size between half screen and full screen
+		[[color=light_blue]Ctrl[/color] + [color=light_blue] Mouse Wheel[/color]] up/down to change console font size
 		[color=light_blue]~[/color] or [color=light_blue]Esc[/color] key to close the console
 		[color=light_blue]Tab[/color] key to autocomplete, [color=light_blue]Tab[/color] again to cycle between matching suggestions\n\n")
 
