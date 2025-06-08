@@ -25,7 +25,7 @@ class ConsoleCommand:
 		required = in_required
 		description = in_description
 
-
+var theme : Theme
 var control := Control.new()
 
 # If you want to customize the way the console looks, you can direcly modify
@@ -80,6 +80,11 @@ func _enter_tree() -> void:
 			var line := console_history_file.get_line()
 			if (line.length()):
 				add_input_history(line)
+
+	if ProjectSettings.has_setting(&"console/theme"):
+		theme = load(ProjectSettings.get_setting(&"console/theme"))
+		if theme:
+			control.theme = theme
 
 	var canvas_layer := CanvasLayer.new()
 	canvas_layer.layer = 3
