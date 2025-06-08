@@ -31,6 +31,7 @@ var control := Control.new()
 # If you want to customize the way the console looks, you can direcly modify
 # the properties of the rich text and line edit here:
 var rich_label := RichTextLabel.new()
+var panel := Panel.new()
 var line_edit := LineEdit.new()
 
 var console_commands := {}
@@ -87,22 +88,22 @@ func _enter_tree() -> void:
 	control.anchor_bottom = 1.0
 	control.anchor_right = 1.0
 	canvas_layer.add_child(control)
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("000000d7")
+	control.add_child(panel)
+	panel.anchor_right = 1.0
+	panel.anchor_bottom = 0.5
 	rich_label.selection_enabled = true
 	rich_label.context_menu_enabled = true
 	rich_label.bbcode_enabled = true
 	rich_label.scroll_following = true
 	rich_label.anchor_right = 1.0
-	rich_label.anchor_bottom = 0.5
-	rich_label.add_theme_stylebox_override("normal", style)
+	rich_label.anchor_bottom = 1.0
 	if font_size > 0:
 		rich_label.add_theme_font_size_override("normal_font_size", font_size)
 		rich_label.add_theme_font_size_override("bold_font_size", font_size)
 		rich_label.add_theme_font_size_override("bold_italics_font_size", font_size)
 		rich_label.add_theme_font_size_override("italics_font_size", font_size)
 		rich_label.add_theme_font_size_override("mono_font_size", font_size)
-	control.add_child(rich_label)
+	panel.add_child(rich_label)
 	rich_label.append_text("Development console.\n")
 	line_edit.anchor_top = 0.5
 	line_edit.anchor_right = 1.0
