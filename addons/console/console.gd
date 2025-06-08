@@ -141,8 +141,8 @@ func _update_font_size():
 				node.add_theme_font_size_override("font_size", font_size)
 			else:
 				node.remove_theme_font_size_override("font_size")
-				
-	
+
+
 
 func _exit_tree() -> void:
 	var console_history_file := FileAccess.open("user://console_history.txt", FileAccess.WRITE)
@@ -242,7 +242,7 @@ func autocomplete() -> void:
 				return
 	else:
 		suggesting = true
-		
+
 		if (" " in line_edit.text): # We're searching for a parameter to autocomplete
 			var split_text := parse_line_input(line_edit.text)
 			if (split_text.size() > 1):
@@ -259,7 +259,7 @@ func autocomplete() -> void:
 					sorted_commands.append(str(command))
 			sorted_commands.sort()
 			sorted_commands.reverse()
-			
+
 			var prev_index := 0
 			for command in sorted_commands:
 				if (!line_edit.text || command.contains(line_edit.text)):
@@ -396,17 +396,17 @@ func on_text_entered(new_text : String) -> void:
 	line_edit.clear()
 	if (line_edit.has_method(&"edit")):
 		line_edit.call_deferred(&"edit")
-	
+
 	if not new_text.strip_edges().is_empty():
 		add_input_history(new_text)
 		print_line("[i]> " + new_text + "[/i]")
 		var text_split := parse_line_input(new_text)
 		var text_command := text_split[0]
-		
+
 		if console_commands.has(text_command):
 			var arguments := text_split.slice(1)
 			var console_command : ConsoleCommand = console_commands[text_command]
-			
+
 			# calc is a especial command that needs special treatment
 			if (text_command.match("calc")):
 				var expression := ""
@@ -500,7 +500,7 @@ func commands_list() -> void:
 		if (!console_commands[command].hidden):
 			commands.append(str(command))
 	commands.sort()
-	
+
 	for command in commands:
 		var arguments_string := ""
 		var description : String = console_commands[command].description
@@ -528,10 +528,10 @@ func set_enable_on_release_build(enable : bool):
 
 func pause() -> void:
 	get_tree().paused = true
-	
+
 func unpause() -> void:
 	get_tree().paused = false
-	
+
 func exec(filename : String) -> void:
 	var path := "user://%s.txt" % [filename]
 	var script := FileAccess.open(path, FileAccess.READ)
