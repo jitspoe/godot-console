@@ -93,8 +93,8 @@ func _enter_tree() -> void:
 			if (line.length()):
 				add_input_history(line)
 
-	if ProjectSettings.has_setting(&"console/theme"):
-		theme = load(ProjectSettings.get_setting(&"console/theme"))
+	if ProjectSettings.has_setting(CONSOLE_THEME):
+		theme = load(ProjectSettings.get_setting(CONSOLE_THEME))
 		if theme:
 			control.theme = theme
 
