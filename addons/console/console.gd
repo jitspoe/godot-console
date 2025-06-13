@@ -136,8 +136,8 @@ func _enter_tree() -> void:
 	if font_size > 0:
 		line_edit.add_theme_font_size_override("font_size", font_size)
 	control.add_child(line_edit)
-	line_edit.text_submitted.connect(on_text_entered)
-	line_edit.text_changed.connect(on_line_edit_text_changed)
+	line_edit.text_submitted.connect(_on_text_entered)
+	line_edit.text_changed.connect(_on_line_edit_text_changed)
 	control.visible = false
 	process_mode = PROCESS_MODE_ALWAYS
 	if ProjectSettings.get_setting(CONSOLE_SCALE):
@@ -145,26 +145,6 @@ func _enter_tree() -> void:
 	else:
 		console_scale = 1.0
 
-func _update_font_size():
-	for node in get_child(0).get_child(0).get_children():
-		if node is RichTextLabel:
-			if font_size > 0:
-				node.add_theme_font_size_override("normal_font_size", font_size)
-				node.add_theme_font_size_override("bold_font_size", font_size)
-				node.add_theme_font_size_override("bold_italics_font_size", font_size)
-				node.add_theme_font_size_override("italics_font_size", font_size)
-				node.add_theme_font_size_override("mono_font_size", font_size)
-			else:
-				node.remove_theme_font_size_override("normal_font_size")
-				node.remove_theme_font_size_override("bold_font_size")
-				node.remove_theme_font_size_override("bold_italics_font_size")
-				node.remove_theme_font_size_override("italics_font_size")
-				node.remove_theme_font_size_override("mono_font_size")
-		elif node is LineEdit:
-			if font_size > 0:
-				node.add_theme_font_size_override("font_size", font_size)
-			else:
-				node.remove_theme_font_size_override("font_size")
 
 func _set_console_scale(_console_scale: float) -> void:
 	var inverse_scale : float = 1.0 / _console_scale
@@ -179,6 +159,23 @@ func _set_console_height(_console_height: float) -> void:
 	line_edit.anchor_bottom = _console_height
 
 	console_height = _console_height
+
+
+func _update_font_size():
+	if font_size > 0:
+		line_edit.add_theme_font_size_override("font_size", font_size)
+		rich_label.add_theme_font_size_override("normal_font_size", font_size)
+		rich_label.add_theme_font_size_override("bold_font_size", font_size)
+		rich_label.add_theme_font_size_override("bold_italics_font_size", font_size)
+		rich_label.add_theme_font_size_override("italics_font_size", font_size)
+		rich_label.add_theme_font_size_override("mono_font_size", font_size)
+	else:
+		line_edit.remove_theme_font_size_override("font_size")
+		rich_label.remove_theme_font_size_override("normal_font_size")
+		rich_label.remove_theme_font_size_override("bold_font_size")
+		rich_label.remove_theme_font_size_override("bold_italics_font_size")
+		rich_label.remove_theme_font_size_override("italics_font_size")
+		rich_label.remove_theme_font_size_override("mono_font_size")
 
 
 func _exit_tree() -> void:
@@ -208,6 +205,7 @@ func _ready() -> void:
 	add_command("pause", pause, 0, 0, "Pauses node processing.")
 	add_command("unpause", unpause, 0, 0, "Unpauses node processing.")
 	add_command("exec", exec, 1, 1, "Execute a script.")
+
 
 func _input(event : InputEvent) -> void:
 	if (event is InputEventKey):
@@ -442,7 +440,7 @@ func parse_line_input(text : String) -> PackedStringArray:
 	return out_array
 
 
-func on_text_entered(new_text : String) -> void:
+func _on_text_entered(new_text : String) -> void:
 	scroll_to_bottom()
 	reset_autocomplete()
 	line_edit.clear()
@@ -483,7 +481,7 @@ func on_text_entered(new_text : String) -> void:
 			print_error("Command not found.")
 
 
-func on_line_edit_text_changed(new_text : String) -> void:
+func _on_line_edit_text_changed(new_text : String) -> void:
 	reset_autocomplete()
 
 
@@ -582,14 +580,16 @@ func set_enable_on_release_build(enable : bool):
 func pause() -> void:
 	get_tree().paused = true
 
+
 func unpause() -> void:
 	get_tree().paused = false
+
 
 func exec(filename : String) -> void:
 	var path := "user://%s.txt" % [filename]
 	var script := FileAccess.open(path, FileAccess.READ)
 	if (script):
 		while (!script.eof_reached()):
-			on_text_entered(script.get_line())
+			_on_text_entered(script.get_line())
 	else:
 		print_error("File %s not found." % [path])
