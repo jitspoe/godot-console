@@ -13,8 +13,8 @@ var font_size := -1:
 		_update_font_size()
 
 ## What visual scale should the console be
-@export var console_scale : float : set = _set_console_scale
-@export var console_height : float : set = _set_console_height
+var console_scale : float : set = _set_console_scale
+var console_height : float : set = _set_console_height
 ## Initial size of the console
 var console_size : Vector2
 
