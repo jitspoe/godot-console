@@ -1,5 +1,9 @@
 extends Node
 
+const CONSOLE_THEME : String = &"console/theme"
+const CONSOLE_SCALE : String = &"console/scale"
+const CONSOLE_HEIGHT : String = &"console/height"
+
 var enabled := true
 var enable_on_release_build := false : set = set_enable_on_release_build
 var pause_enabled := false
@@ -7,6 +11,12 @@ var font_size := -1:
 	set(value):
 		font_size = value
 		_update_font_size()
+
+## What visual scale should the console be
+@export var console_scale : float : set = _set_console_scale
+@export var console_height : float : set = _set_console_height
+## Initial size of the console
+var console_size : Vector2
 
 signal console_opened
 signal console_closed
@@ -26,6 +36,7 @@ class ConsoleCommand:
 		description = in_description
 
 var theme : Theme
+var canvas_layer : CanvasLayer = CanvasLayer.new()
 var control := Control.new()
 
 # If you want to customize the way the console looks, you can direcly modify
@@ -87,15 +98,18 @@ func _enter_tree() -> void:
 		if theme:
 			control.theme = theme
 
-	var canvas_layer := CanvasLayer.new()
 	canvas_layer.layer = 3
 	add_child(canvas_layer)
 	control.anchor_bottom = 1.0
 	control.anchor_right = 1.0
 	canvas_layer.add_child(control)
+	console_size = control.size
 	control.add_child(panel)
 	panel.anchor_right = 1.0
-	panel.anchor_bottom = 0.5
+	if ProjectSettings.has_setting(CONSOLE_HEIGHT):
+		panel.anchor_bottom = ProjectSettings.get_setting(CONSOLE_HEIGHT)
+	else:
+		panel.anchor_bottom = 0.5
 	rich_label.selection_enabled = true
 	rich_label.context_menu_enabled = true
 	rich_label.bbcode_enabled = true
@@ -110,9 +124,14 @@ func _enter_tree() -> void:
 		rich_label.add_theme_font_size_override("mono_font_size", font_size)
 	panel.add_child(rich_label)
 	rich_label.append_text("Development console.\n")
-	line_edit.anchor_top = 0.5
+
+	if ProjectSettings.has_setting(CONSOLE_HEIGHT):
+		line_edit.anchor_top = ProjectSettings.get_setting(CONSOLE_HEIGHT)
+		line_edit.anchor_bottom = ProjectSettings.get_setting(CONSOLE_HEIGHT)
+	else:
+		line_edit.anchor_top = 0.5
+		line_edit.anchor_bottom = 0.5
 	line_edit.anchor_right = 1.0
-	line_edit.anchor_bottom = 0.5
 	line_edit.placeholder_text = "Enter \"help\" for instructions"
 	if font_size > 0:
 		line_edit.add_theme_font_size_override("font_size", font_size)
@@ -121,6 +140,10 @@ func _enter_tree() -> void:
 	line_edit.text_changed.connect(on_line_edit_text_changed)
 	control.visible = false
 	process_mode = PROCESS_MODE_ALWAYS
+	if ProjectSettings.get_setting(CONSOLE_SCALE):
+		console_scale = ProjectSettings.get_setting(CONSOLE_SCALE)
+	else:
+		console_scale = 1.0
 
 func _update_font_size():
 	for node in get_child(0).get_child(0).get_children():
@@ -143,6 +166,19 @@ func _update_font_size():
 			else:
 				node.remove_theme_font_size_override("font_size")
 
+func _set_console_scale(_console_scale: float) -> void:
+	var inverse_scale : float = 1.0 / _console_scale
+	control.scale = Vector2(_console_scale, _console_scale)
+	control.size = console_size * inverse_scale
+	console_scale = _console_scale
+
+
+func _set_console_height(_console_height: float) -> void:
+	panel.anchor_bottom = _console_height
+	line_edit.anchor_top = _console_height
+	line_edit.anchor_bottom = _console_height
+
+	console_height = _console_height
 
 
 func _exit_tree() -> void:
