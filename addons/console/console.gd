@@ -14,9 +14,10 @@ var font_size := -1:
 
 ## What visual scale should the console be
 var console_scale : float : set = _set_console_scale
+## How much of the screen should the console take up
 var console_height : float : set = _set_console_height
 ## Initial size of the console
-var console_size : Vector2
+var _console_size : Vector2
 
 signal console_opened
 signal console_closed
@@ -103,7 +104,7 @@ func _enter_tree() -> void:
 	control.anchor_bottom = 1.0
 	control.anchor_right = 1.0
 	canvas_layer.add_child(control)
-	console_size = control.size
+	_console_size = control.size
 	control.add_child(panel)
 	panel.anchor_right = 1.0
 	if ProjectSettings.has_setting(CONSOLE_HEIGHT):
@@ -149,7 +150,7 @@ func _enter_tree() -> void:
 func _set_console_scale(_console_scale: float) -> void:
 	var inverse_scale : float = 1.0 / _console_scale
 	control.scale = Vector2(_console_scale, _console_scale)
-	control.size = console_size * inverse_scale
+	control.size = _console_size * inverse_scale
 	console_scale = _console_scale
 
 
