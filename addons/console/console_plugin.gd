@@ -11,6 +11,15 @@ const CONSOLE_COLOR_INFO : String = &"console/color_info"
 const CONSOLE_COLOR_LITERAL : String = &"console/color_literal"
 const CONSOLE_TABSTOP : String = &"console/tabstop"
 
+##FIXME: This is here because project settings do no return the default value naturally
+##This should be fixed in 4.5
+const color_dictionary : Dictionary[String, Color] = {
+	CONSOLE_COLOR_ERROR: Color.LIGHT_CORAL,
+	CONSOLE_COLOR_INFO: Color.LIGHT_BLUE,
+	CONSOLE_COLOR_LITERAL: Color.PALE_GREEN,
+	CONSOLE_COLOR_WARNING: Color.LIGHT_GOLDENROD
+}
+
 func add_setting(setting_name: String, property_info: Dictionary, default: Variant) -> void:
 	if not ProjectSettings.has_setting(setting_name):
 		ProjectSettings.set_setting(setting_name, default)
@@ -56,25 +65,25 @@ func _setup_project_settings() -> void:
 		"name": CONSOLE_COLOR_ERROR,
 		"type": TYPE_COLOR,
 		"hint": PROPERTY_HINT_COLOR_NO_ALPHA,
-	}, Color.LIGHT_CORAL)
+	}, color_dictionary[CONSOLE_COLOR_ERROR])
 
 	add_setting(CONSOLE_COLOR_INFO, {
 		"name": CONSOLE_COLOR_INFO,
 		"type": TYPE_COLOR,
 		"hint": PROPERTY_HINT_COLOR_NO_ALPHA,
-	}, Color.LIGHT_BLUE)
+	}, color_dictionary[CONSOLE_COLOR_INFO])
 
 	add_setting(CONSOLE_COLOR_WARNING, {
 		"name": CONSOLE_COLOR_WARNING,
 		"type": TYPE_COLOR,
 		"hint": PROPERTY_HINT_COLOR_NO_ALPHA,
-	}, Color.LIGHT_GOLDENROD)
+	}, color_dictionary[CONSOLE_COLOR_WARNING])
 
 	add_setting(CONSOLE_COLOR_LITERAL, {
 		"name": CONSOLE_COLOR_LITERAL,
 		"type": TYPE_COLOR,
 		"hint": PROPERTY_HINT_COLOR_NO_ALPHA
-	}, Color.PALE_GREEN)
+	}, color_dictionary[CONSOLE_COLOR_LITERAL])
 
 	ProjectSettings.save()
 
