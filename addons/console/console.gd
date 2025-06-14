@@ -3,6 +3,12 @@ extends Node
 const CONSOLE_THEME : String = &"console/theme"
 const CONSOLE_SCALE : String = &"console/scale"
 const CONSOLE_HEIGHT : String = &"console/height"
+const CONSOLE_COLOR_WARNING : String = &"console/color_warning"
+const CONSOLE_COLOR_ERROR : String = &"console/color_error"
+const CONSOLE_COLOR_INFO : String = &"console/color_info"
+const CONSOLE_COLOR_LITERAL : String = &"console/color_literal"
+const CONSOLE_TABSTOP : String = &"console/tabstop"
+
 
 var enabled := true
 var enable_on_release_build := false : set = set_enable_on_release_build
@@ -52,6 +58,8 @@ var console_history := []
 var console_history_index := 0
 var was_paused_already := false
 
+var tab_string : String = "    "
+
 ## Usage: Console.add_command("command_name", <function to call>, <number of arguments or array of argument names>, <required number of arguments>, "Help description")
 func add_command(command_name : String, function : Callable, arguments = [], required: int = 0, description : String = "") -> void:
 	if (arguments is int):
@@ -98,6 +106,11 @@ func _enter_tree() -> void:
 		theme = load(ProjectSettings.get_setting(CONSOLE_THEME))
 		if theme:
 			control.theme = theme
+
+	if ProjectSettings.has_setting(CONSOLE_TABSTOP):
+		tab_string = ""
+		for i in range(ProjectSettings.get_setting(CONSOLE_TABSTOP)):
+			tab_string += " "
 
 	canvas_layer.layer = 3
 	add_child(canvas_layer)
@@ -375,22 +388,36 @@ func scroll_to_bottom() -> void:
 
 
 func print_error(text : Variant, print_godot := false) -> void:
+	var _color : Color = Color.LIGHT_CORAL
 	if not text is String:
 		text = str(text)
-	print_line("	   [color=light_coral]ERROR:[/color] %s" % text, print_godot)
+
+	if ProjectSettings.has_setting(CONSOLE_COLOR_ERROR):
+		_color = ProjectSettings.get_setting(CONSOLE_COLOR_ERROR)
+
+	print_line("%s[color=#%s]ERROR:[/color] %s" % [tab_string, _color.to_html(false), text], print_godot)
 
 
 func print_info(text : Variant, print_godot := false) -> void:
+	var _color : Color = Color.LIGHT_BLUE
 	if not text is String:
 		text = str(text)
-	print_line("	   [color=light_blue]INFO:[/color] %s" % text, print_godot)
+
+	if ProjectSettings.has_setting(CONSOLE_COLOR_INFO):
+		_color = ProjectSettings.get_setting(CONSOLE_COLOR_INFO)
+
+	print_line("%s[color=#%s]INFO:[/color] %s" % [tab_string, _color.to_html(false), text], print_godot)
 
 
 func print_warning(text : Variant, print_godot := false) -> void:
+	var _color : Color = Color.LIGHT_GOLDENROD
 	if not text is String:
 		text = str(text)
-	print_line("	   [color=gold]WARNING:[/color] %s" % text, print_godot)
 
+	if ProjectSettings.has_setting(CONSOLE_COLOR_WARNING):
+		_color = ProjectSettings.get_setting(CONSOLE_COLOR_WARNING)
+
+	print_line("%s[color=#%s]WARNING:[/color] %s" % [tab_string, _color.to_html(false), text], print_godot)
 
 func print_line(text : Variant, print_godot := false) -> void:
 	if not text is String:
