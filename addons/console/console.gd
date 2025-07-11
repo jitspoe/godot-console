@@ -16,20 +16,22 @@ const color_dictionary : Dictionary[String, Color] = {
 	CONSOLE_COLOR_WARNING: Color.LIGHT_GOLDENROD
 }
 
-var enabled := true
-var enable_on_release_build := false : set = set_enable_on_release_build
-var pause_enabled := false
+var enabled : bool = true
+var enable_on_release_build : bool = false : set = set_enable_on_release_build
+var pause_enabled : bool = false
 var font_size := -1:
 	set(value):
 		font_size = value
 		_update_font_size()
 
 ## What visual scale should the console be
-var console_scale : float : set = _set_console_scale
+var console_scale : float : get = _get_console_scale
 ## How much of the screen should the console take up
-var console_height : float : set = _set_console_height
-## Initial size of the console
-var _console_size : Vector2
+var console_height : float : get = _get_console_height
+var console_full_screen : bool = false
+
+var console_tween : Tween
+var _conosle_tween_time : float = 5
 
 signal console_opened
 signal console_closed
@@ -50,7 +52,7 @@ class ConsoleCommand:
 
 var theme : Theme
 var canvas_layer : CanvasLayer = CanvasLayer.new()
-var control : Control = Control.new()
+var v_box_container : VBoxContainer = VBoxContainer.new()
 
 # If you want to customize the way the console looks, you can direcly modify
 # the properties of the rich text and line edit here:
@@ -112,7 +114,7 @@ func _enter_tree() -> void:
 	if ProjectSettings.has_setting(CONSOLE_THEME):
 		theme = load(ProjectSettings.get_setting(CONSOLE_THEME))
 		if theme:
-			control.theme = theme
+			v_box_container.theme = theme
 
 	if ProjectSettings.has_setting(CONSOLE_TABSTOP):
 		tab_string = ""
@@ -121,16 +123,16 @@ func _enter_tree() -> void:
 
 	canvas_layer.layer = 3
 	add_child(canvas_layer)
-	control.anchor_bottom = 1.0
-	control.anchor_right = 1.0
-	canvas_layer.add_child(control)
-	_console_size = control.size
-	control.add_child(panel)
-	panel.anchor_right = 1.0
-	if ProjectSettings.has_setting(CONSOLE_HEIGHT):
-		panel.anchor_bottom = ProjectSettings.get_setting(CONSOLE_HEIGHT)
-	else:
-		panel.anchor_bottom = 0.5
+	v_box_container.scale = Vector2(console_scale, console_scale)
+	v_box_container.anchor_right = 1.0
+	v_box_container.anchor_bottom = console_height
+	v_box_container.offset_bottom = 0
+	v_box_container.offset_left = 0
+	v_box_container.offset_right = 0
+	v_box_container.offset_top = 0
+	canvas_layer.add_child(v_box_container)
+	panel.size_flags_vertical = Control.SIZE_FILL ^ Control.SIZE_EXPAND
+	v_box_container.add_child(panel)
 	rich_label.selection_enabled = true
 	rich_label.context_menu_enabled = true
 	rich_label.bbcode_enabled = true
@@ -146,41 +148,36 @@ func _enter_tree() -> void:
 		rich_label.add_theme_font_size_override("mono_font_size", font_size)
 	panel.add_child(rich_label)
 	rich_label.append_text("Development console.\n")
-
-	if ProjectSettings.has_setting(CONSOLE_HEIGHT):
-		line_edit.anchor_top = ProjectSettings.get_setting(CONSOLE_HEIGHT)
-		line_edit.anchor_bottom = ProjectSettings.get_setting(CONSOLE_HEIGHT)
-	else:
-		line_edit.anchor_top = 0.5
-		line_edit.anchor_bottom = 0.5
 	line_edit.anchor_right = 1.0
 	line_edit.placeholder_text = "Enter \"help\" for instructions"
 	if font_size > 0:
 		line_edit.add_theme_font_size_override("font_size", font_size)
-	control.add_child(line_edit)
+	v_box_container.add_child(line_edit)
 	line_edit.text_submitted.connect(_on_text_entered)
 	line_edit.text_changed.connect(_on_line_edit_text_changed)
-	control.visible = false
+	v_box_container.visible = false
 	process_mode = PROCESS_MODE_ALWAYS
 	if ProjectSettings.get_setting(CONSOLE_SCALE):
 		console_scale = ProjectSettings.get_setting(CONSOLE_SCALE)
 	else:
 		console_scale = 1.0
 
+## Get the scale of the console - if this is not in the system settings return a default value
+func _get_console_scale() -> float:
+	if ProjectSettings.has_setting(CONSOLE_SCALE):
+		return ProjectSettings.get_setting(CONSOLE_SCALE)
 
-func _set_console_scale(_console_scale: float) -> void:
-	var inverse_scale : float = 1.0 / _console_scale
-	control.scale = Vector2(_console_scale, _console_scale)
-	control.size = _console_size * inverse_scale
-	console_scale = _console_scale
+	return 1.0
 
+## Get the height of the console - this is related to the scaling of the console
+func _get_console_height() -> float:
+	if console_full_screen:
+		return 1.0 / console_scale
 
-func _set_console_height(_console_height: float) -> void:
-	panel.anchor_bottom = _console_height
-	line_edit.anchor_top = _console_height
-	line_edit.anchor_bottom = _console_height
+	if ProjectSettings.has_setting(CONSOLE_HEIGHT):
+		return ProjectSettings.get_setting(CONSOLE_HEIGHT) / console_scale
 
-	console_height = _console_height
+	return 0.5 / console_scale
 
 
 func _update_font_size():
@@ -237,17 +234,17 @@ func _input(event : InputEvent) -> void:
 			get_tree().get_root().set_input_as_handled()
 		elif (event.physical_keycode == KEY_QUOTELEFT and event.is_command_or_control_pressed()): # Toggles console size or opens big console.
 			if (event.pressed):
-				if (control.visible):
+				if (v_box_container.visible):
 					toggle_size()
 				else:
 					toggle_console()
 					toggle_size()
 			get_tree().get_root().set_input_as_handled()
-		elif (event.get_physical_keycode_with_modifiers() == KEY_ESCAPE && control.visible): # Disable console on ESC
+		elif (event.get_physical_keycode_with_modifiers() == KEY_ESCAPE && v_box_container.visible): # Disable console on ESC
 			if (event.pressed):
 				toggle_console()
 				get_tree().get_root().set_input_as_handled()
-		if (control.visible and event.pressed):
+		if (v_box_container.visible and event.pressed):
 			if (event.get_physical_keycode_with_modifiers() == KEY_UP):
 				get_tree().get_root().set_input_as_handled()
 				if (console_history_index > 0):
@@ -280,21 +277,22 @@ func _input(event : InputEvent) -> void:
 			if (event.get_physical_keycode_with_modifiers() == KEY_TAB):
 				autocomplete()
 				get_tree().get_root().set_input_as_handled()
+
 	elif event is InputEventMouseButton:
-				if (control.visible):
-					if (event.is_command_or_control_pressed()):
-						if event.button_index == MOUSE_BUTTON_WHEEL_UP: # Increase font size with ctrl+mouse wheel up
-							if font_size <= 0:
-								font_size = 16 # Use default font size of 16
-							font_size = min(128, font_size + 2) # Limit to max of 128
-							_update_font_size()
-							get_tree().get_root().set_input_as_handled()
-						elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN: # Decrease font size with ctrl+mouse wheel down
-							if font_size <= 0:
-								font_size = 16 # Use default font size of 16
-							font_size = max(8, font_size - 2) # Limit to minimum of 8
-							_update_font_size()
-							get_tree().get_root().set_input_as_handled()
+		if (v_box_container.visible):
+			if (event.is_command_or_control_pressed()):
+				if event.button_index == MOUSE_BUTTON_WHEEL_UP: # Increase font size with ctrl+mouse wheel up
+					if font_size <= 0:
+						font_size = 16 # Use default font size of 16
+					font_size = min(128, font_size + 2) # Limit to max of 128
+					_update_font_size()
+					get_tree().get_root().set_input_as_handled()
+				elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN: # Decrease font size with ctrl+mouse wheel down
+					if font_size <= 0:
+						font_size = 16 # Use default font size of 16
+					font_size = max(8, font_size - 2) # Limit to minimum of 8
+					_update_font_size()
+					get_tree().get_root().set_input_as_handled()
 
 
 var suggestions := []
@@ -351,11 +349,8 @@ func reset_autocomplete() -> void:
 
 
 func toggle_size() -> void:
-	if (control.anchor_bottom == 1.0):
-		control.anchor_bottom = 1.9
-	else:
-		control.anchor_bottom = 1.0
-
+	console_full_screen = !console_full_screen
+	v_box_container.anchor_bottom = console_height
 
 func disable():
 	enabled = false
@@ -368,17 +363,16 @@ func enable():
 
 func toggle_console() -> void:
 	if (enabled):
-		control.visible = !control.visible
+		v_box_container.visible = !v_box_container.visible
 	else:
-		control.visible = false
+		v_box_container.visible = false
 
-	if (control.visible):
+	if (v_box_container.visible):
 		was_paused_already = get_tree().paused
 		get_tree().paused = was_paused_already || pause_enabled
 		line_edit.grab_focus()
 		console_opened.emit()
 	else:
-		control.anchor_bottom = 1.0
 		scroll_to_bottom()
 		reset_autocomplete()
 		if (pause_enabled && !was_paused_already):
@@ -387,7 +381,7 @@ func toggle_console() -> void:
 
 
 func is_visible():
-	return control.visible
+	return v_box_container.visible
 
 
 func scroll_to_bottom() -> void:
