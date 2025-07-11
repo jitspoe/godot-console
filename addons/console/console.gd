@@ -19,18 +19,20 @@ const color_dictionary : Dictionary[String, Color] = {
 var enabled : bool = true
 var enable_on_release_build : bool = false : set = set_enable_on_release_build
 var pause_enabled : bool = false
-var font_size := -1:
-	set(value):
-		font_size = value
-		_update_font_size()
+var font_size : int : set = _set_font_size
 
 ## What visual scale should the console be
 var console_scale : float : get = _get_console_scale
+
 ## How much of the screen should the console take up
 var console_height : float : get = _get_console_height
+
+## Make this value 100% of the width
+var console_width : float : get = _get_console_width
+
+## Is the console in full screen or part screen mode
 var console_full_screen : bool = false
 
-var console_tween : Tween
 var _conosle_tween_time : float = 5
 
 signal console_opened
@@ -124,7 +126,7 @@ func _enter_tree() -> void:
 	canvas_layer.layer = 3
 	add_child(canvas_layer)
 	v_box_container.scale = Vector2(console_scale, console_scale)
-	v_box_container.anchor_right = 1.0
+	v_box_container.anchor_right = console_width
 	v_box_container.anchor_bottom = console_height
 	v_box_container.offset_bottom = 0
 	v_box_container.offset_left = 0
@@ -140,12 +142,6 @@ func _enter_tree() -> void:
 	rich_label.anchor_right = 1.0
 	rich_label.anchor_bottom = 1.0
 	rich_label.install_effect(preload("res://addons/console/system_color.gd").new())
-	if font_size > 0:
-		rich_label.add_theme_font_size_override("normal_font_size", font_size)
-		rich_label.add_theme_font_size_override("bold_font_size", font_size)
-		rich_label.add_theme_font_size_override("bold_italics_font_size", font_size)
-		rich_label.add_theme_font_size_override("italics_font_size", font_size)
-		rich_label.add_theme_font_size_override("mono_font_size", font_size)
 	panel.add_child(rich_label)
 	rich_label.append_text("Development console.\n")
 	line_edit.anchor_right = 1.0
@@ -157,10 +153,7 @@ func _enter_tree() -> void:
 	line_edit.text_changed.connect(_on_line_edit_text_changed)
 	v_box_container.visible = false
 	process_mode = PROCESS_MODE_ALWAYS
-	if ProjectSettings.get_setting(CONSOLE_SCALE):
-		console_scale = ProjectSettings.get_setting(CONSOLE_SCALE)
-	else:
-		console_scale = 1.0
+
 
 ## Get the scale of the console - if this is not in the system settings return a default value
 func _get_console_scale() -> float:
@@ -179,9 +172,13 @@ func _get_console_height() -> float:
 
 	return 0.5 / console_scale
 
+func _get_console_width() -> float:
+	return 1.0 / console_scale
 
-func _update_font_size():
-	if font_size > 0:
+
+func _set_font_size(value: int) -> void:
+	font_size = value
+	if value > 0:
 		line_edit.add_theme_font_size_override("font_size", font_size)
 		rich_label.add_theme_font_size_override("normal_font_size", font_size)
 		rich_label.add_theme_font_size_override("bold_font_size", font_size)
@@ -282,16 +279,10 @@ func _input(event : InputEvent) -> void:
 		if (v_box_container.visible):
 			if (event.is_command_or_control_pressed()):
 				if event.button_index == MOUSE_BUTTON_WHEEL_UP: # Increase font size with ctrl+mouse wheel up
-					if font_size <= 0:
-						font_size = 16 # Use default font size of 16
 					font_size = min(128, font_size + 2) # Limit to max of 128
-					_update_font_size()
 					get_tree().get_root().set_input_as_handled()
 				elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN: # Decrease font size with ctrl+mouse wheel down
-					if font_size <= 0:
-						font_size = 16 # Use default font size of 16
 					font_size = max(8, font_size - 2) # Limit to minimum of 8
-					_update_font_size()
 					get_tree().get_root().set_input_as_handled()
 
 
