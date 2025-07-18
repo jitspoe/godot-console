@@ -22,13 +22,7 @@ var pause_enabled : bool = false
 var font_size : int : set = _set_font_size
 
 ## What visual scale should the console be
-var console_scale : float : get = _get_console_scale
-
-## How much of the screen should the console take up
-var console_height : float : get = _get_console_height
-
-## Make this value 100% of the width
-var console_width : float : get = _get_console_width
+var console_scale : float : set = set_console_scale
 
 ## Is the console in full screen or part screen mode
 var console_full_screen : bool = false
@@ -125,9 +119,7 @@ func _enter_tree() -> void:
 
 	canvas_layer.layer = 3
 	add_child(canvas_layer)
-	v_box_container.scale = Vector2(console_scale, console_scale)
-	v_box_container.anchor_right = console_width
-	v_box_container.anchor_bottom = console_height
+	console_scale = _get_console_scale_setting()
 	v_box_container.offset_bottom = 0
 	v_box_container.offset_left = 0
 	v_box_container.offset_right = 0
@@ -155,12 +147,21 @@ func _enter_tree() -> void:
 	process_mode = PROCESS_MODE_ALWAYS
 
 
-## Get the scale of the console - if this is not in the system settings return a default value
-func _get_console_scale() -> float:
+## Get the scale of the console from the settings -- if this is not in the system settings return a default value
+func _get_console_scale_setting() -> float:
 	if ProjectSettings.has_setting(CONSOLE_SCALE):
 		return ProjectSettings.get_setting(CONSOLE_SCALE)
 
 	return 1.0
+
+
+## Set the console scale
+func set_console_scale(scale : float):
+	console_scale = scale
+	v_box_container.scale = Vector2(console_scale, console_scale)
+	v_box_container.anchor_right = _get_console_width()
+	v_box_container.anchor_bottom = _get_console_height()
+
 
 ## Get the height of the console - this is related to the scaling of the console
 func _get_console_height() -> float:
@@ -206,6 +207,7 @@ func _exit_tree() -> void:
 
 
 func _ready() -> void:
+	v_box_container.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST # For that retro look.
 	add_command("quit", quit, 0, 0, "Quits the game.")
 	add_command("exit", quit, 0, 0, "Quits the game.")
 	add_command("clear", clear, 0, 0, "Clears the text on the console.")
@@ -341,7 +343,8 @@ func reset_autocomplete() -> void:
 
 func toggle_size() -> void:
 	console_full_screen = !console_full_screen
-	v_box_container.anchor_bottom = console_height
+	v_box_container.anchor_bottom = _get_console_height()
+
 
 func disable():
 	enabled = false
