@@ -42,7 +42,8 @@ func _ready():
 	line_edit.anchor_right = 1.0
 	line_edit.anchor_bottom = 0.5
 	control.add_child(line_edit)
-	line_edit.connect("text_entered", self, "on_text_entered")
+	line_edit.connect("text_entered", self, "_on_text_entered")
+	line_edit.connect("text_changed", self, "_on_text_changed")
 	control.visible = false
 	pause_mode = PAUSE_MODE_PROCESS
 	add_command("quit", self, "quit", 0)
@@ -93,6 +94,7 @@ func toggle_console():
 		emit_signal("console_opened")
 	else:
 		get_tree().paused = false
+		reset_autocomplete()
 		emit_signal("console_closed")
 
 
@@ -104,8 +106,9 @@ func print_line(text : String):
 		rich_label.add_text("\n")
 
 
-func on_text_entered(text : String):
+func _on_text_entered(text : String):
 	line_edit.clear()
+	reset_autocomplete()
 	add_input_history(text)
 	print_line(text)
 	var split_text := text.split(" ", true)
@@ -127,6 +130,10 @@ func on_text_entered(text : String):
 		else:
 			emit_signal("console_unknown_command")
 			print_line("Command not found.")
+
+
+func _on_text_changed(text : String):
+	reset_autocomplete()
 
 
 func add_command(command_name : String, object : Object, function_name : String, param_count : int = 0):
