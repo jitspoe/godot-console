@@ -9,6 +9,7 @@ signal console_unknown_command
 class ConsoleCommand:
 	var function
 	var param_count
+	var hidden := false
 	func _init(in_function, in_param_count):
 		function = in_function
 		param_count = in_param_count
@@ -21,6 +22,7 @@ onready var line_edit := LineEdit.new()
 var console_commands := {}
 var console_history := []
 var console_history_index := 0
+var command_parameters : Dictionary = {}
 
 
 func _ready():
@@ -58,21 +60,29 @@ func _input(event : InputEvent):
 				toggle_console()
 				get_tree().set_input_as_handled()
 	if (control.visible):
-		if (Input.is_action_just_pressed("ui_up")):
+		if (event.is_action_pressed("ui_up")):
 			get_tree().set_input_as_handled()
 			if (console_history_index > 0):
 				console_history_index -= 1
 				if (console_history_index >= 0):
 					line_edit.text = console_history[console_history_index]
 					line_edit.caret_position = line_edit.text.length()
-		if (Input.is_action_just_pressed("ui_down")):
+					reset_autocomplete()
+		if (event.is_action_pressed("ui_down")):
 			if (console_history_index < console_history.size()):
 				console_history_index += 1
 				if (console_history_index < console_history.size()):
 					line_edit.text = console_history[console_history_index]
 					line_edit.caret_position = line_edit.text.length()
+					reset_autocomplete()
 				else:
 					line_edit.text = ""
+					reset_autocomplete()
+		if (event is InputEventKey && event.is_pressed()):
+			if (event.get_physical_scancode_with_modifiers() == KEY_TAB):
+				autocomplete()
+				get_tree().get_root().set_input_as_handled()
+
 
 
 func toggle_console():
@@ -123,8 +133,11 @@ func add_command(command_name : String, object : Object, function_name : String,
 	console_commands[command_name] = ConsoleCommand.new(funcref(object, function_name), param_count)
 
 
+## Removes a command from the console.  This should be called on a script's _exit_tree()
+## if you have console commands for things that are unloaded before the project closes.
 func remove_command(command_name : String):
 	console_commands.erase(command_name)
+	command_parameters.erase(command_name)
 
 
 func quit():
@@ -158,3 +171,97 @@ func _exit_tree():
 			write_index += 1
 		console_history_file.close()
 
+
+var suggestions := []
+var current_suggest := 0
+var suggesting := false
+
+func autocomplete() -> void:
+	if (suggesting):
+		for i in range(suggestions.size()):
+			if (current_suggest == i):
+				line_edit.text = str(suggestions[i])
+				line_edit.caret_position = line_edit.text.length()
+				if (current_suggest == suggestions.size() - 1):
+					current_suggest = 0
+				else:
+					current_suggest += 1
+				return
+	else:
+		suggesting = true
+
+		if (" " in line_edit.text): # We're searching for a parameter to autocomplete
+			var split_text := parse_line_input(line_edit.text)
+			if (split_text.size() > 1):
+				var command := split_text[0]
+				var param_input := split_text[1]
+				if (command_parameters.has(command)):
+					for param in command_parameters[command]:
+						if (param_input in param):
+							suggestions.append(str(command, " ", param))
+		else:
+			var sorted_commands := []
+			for command in console_commands:
+				if (!console_commands[command].hidden):
+					sorted_commands.append(str(command))
+			sorted_commands.sort()
+			sorted_commands.invert()
+
+			var prev_index := 0
+			for command in sorted_commands:
+				if (!line_edit.text || (line_edit.text in command)):
+					var index : int = command.find(line_edit.text)
+					if (index <= prev_index):
+						suggestions.push_front(command)
+					else:
+						suggestions.push_back(command)
+					prev_index = index
+		autocomplete()
+
+
+func reset_autocomplete() -> void:
+	suggestions.clear()
+	current_suggest = 0
+	suggesting = false
+
+
+func parse_line_input(text : String) -> PoolStringArray:
+	var out_array : PoolStringArray
+	var first_char := true
+	var in_quotes := false
+	var escaped := false
+	var token : String
+	for c in text:
+		if (c == '\\'):
+			escaped = true
+			continue
+		elif (escaped):
+			if (c == 'n'):
+				c = '\n'
+			elif (c == 't'):
+				c = '\t'
+			elif (c == 'r'):
+				c = '\r'
+			elif (c == 'a'):
+				c = '\a'
+			elif (c == 'b'):
+				c = '\b'
+			elif (c == 'f'):
+				c = '\f'
+			escaped = false
+		elif (c == '\"'):
+			in_quotes = !in_quotes
+			continue
+		elif (c == ' ' || c == '\t'):
+			if (!in_quotes):
+				out_array.push_back(token)
+				token = ""
+				continue
+		token += c
+	out_array.push_back(token)
+	return out_array
+
+
+## Useful if you have a list of possible parameters (ex: level names).
+func add_command_autocomplete_list(command_name : String, param_list : PoolStringArray):
+	command_parameters[command_name] = param_list
