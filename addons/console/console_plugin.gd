@@ -88,7 +88,7 @@ func _setup_project_settings() -> void:
 	ProjectSettings.save()
 
 func _enter_tree() -> void:
-	add_autoload_singleton("Console", "res://addons/console/console.gd")
+	add_autoload_singleton("Console", "res://addons/console/Console.gd")
 	_setup_project_settings()
 	print("Console plugin activated.")
 
