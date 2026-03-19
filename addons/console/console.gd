@@ -117,7 +117,7 @@ func _enter_tree() -> void:
 		for i in range(ProjectSettings.get_setting(CONSOLE_TABSTOP)):
 			tab_string += " "
 
-	canvas_layer.layer = 3
+	canvas_layer.layer = ProjectSettings.get_setting(&"console/canvas_layer", 3)
 	add_child(canvas_layer)
 	console_scale = _get_console_scale_setting()
 	v_box_container.offset_bottom = 0

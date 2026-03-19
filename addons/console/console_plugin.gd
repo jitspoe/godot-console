@@ -10,6 +10,7 @@ const CONSOLE_COLOR_ERROR : String = &"console/color_error"
 const CONSOLE_COLOR_INFO : String = &"console/color_info"
 const CONSOLE_COLOR_LITERAL : String = &"console/color_literal"
 const CONSOLE_TABSTOP : String = &"console/tabstop"
+const CONSOLE_CANVAS_LAYER : String = &"console/canvas_layer"
 
 ##FIXME: This is here because project settings do no return the default value naturally
 ##This should be fixed in 4.5
@@ -59,6 +60,12 @@ func _setup_project_settings() -> void:
 		"hint": PROPERTY_HINT_RANGE,
 		"hint_string": "0,8,1,or_greater"
 	},4)
+
+	## Configure Canvas Layer
+	add_setting(CONSOLE_CANVAS_LAYER, {
+		"name": CONSOLE_CANVAS_LAYER,
+		"type": TYPE_INT,
+	}, 3)
 
 	#Configure Colors
 	add_setting(CONSOLE_COLOR_ERROR, {
