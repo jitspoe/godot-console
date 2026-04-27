@@ -356,6 +356,7 @@ func enable():
 
 
 func toggle_console() -> void:
+	var was_visible := v_box_container.visible
 	if (enabled):
 		v_box_container.visible = !v_box_container.visible
 	else:
@@ -365,13 +366,15 @@ func toggle_console() -> void:
 		was_paused_already = get_tree().paused
 		get_tree().paused = was_paused_already || pause_enabled
 		line_edit.grab_focus()
-		console_opened.emit()
+		if was_visible != v_box_container.visible:
+			console_opened.emit()
 	else:
 		scroll_to_bottom()
 		reset_autocomplete()
 		if (pause_enabled && !was_paused_already):
 			get_tree().paused = false
-		console_closed.emit()
+		if was_visible != v_box_container.visible:
+			console_closed.emit()
 
 
 func is_visible():
