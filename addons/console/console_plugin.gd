@@ -96,12 +96,13 @@ func _setup_project_settings() -> void:
 
 	ProjectSettings.save()
 
-func _enter_tree() -> void:
-	if not ProjectSettings.has_setting("autoload/" + SINGLETON_NAME):
-		add_autoload_singleton(SINGLETON_NAME, "res://addons/console/console.gd")
 
+func _enable_plugin() -> void:
+	add_autoload_singleton(SINGLETON_NAME, "res://addons/console/console.gd")
 	_setup_project_settings()
-	print("Console plugin activated.")
+	print("Console plugin enabled.")
+
 
 func _disable_plugin() -> void:
 	remove_autoload_singleton(SINGLETON_NAME)
+	print("Console plugin disabled.")
