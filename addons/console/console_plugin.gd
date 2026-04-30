@@ -1,6 +1,8 @@
 @tool
 extends EditorPlugin
 
+const SINGLETON_NAME = &"Console"
+
 ##FIXME: These should be maintained in one place.
 const CONSOLE_THEME : String = &"console/theme"
 const CONSOLE_SCALE : String = &"console/scale"
@@ -95,9 +97,11 @@ func _setup_project_settings() -> void:
 	ProjectSettings.save()
 
 func _enter_tree() -> void:
-	add_autoload_singleton("Console", "res://addons/console/console.gd")
+	if not ProjectSettings.has_setting("autoload/" + SINGLETON_NAME):
+		add_autoload_singleton(SINGLETON_NAME, "res://addons/console/console.gd")
+
 	_setup_project_settings()
 	print("Console plugin activated.")
 
-func _exit_tree() -> void:
-	remove_autoload_singleton("Console")
+func _disable_plugin() -> void:
+	remove_autoload_singleton(SINGLETON_NAME)
