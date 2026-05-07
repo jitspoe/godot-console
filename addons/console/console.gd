@@ -227,18 +227,19 @@ func _ready() -> void:
 
 func _input(event : InputEvent) -> void:
 	if (event is InputEventKey):
-		if (event.get_physical_keycode_with_modifiers() == KEY_QUOTELEFT): # ~ key.
-			if (event.pressed):
-				toggle_console()
-			get_tree().get_root().set_input_as_handled()
-		elif (event.physical_keycode == KEY_QUOTELEFT and event.is_command_or_control_pressed()): # Toggles console size or opens big console.
-			if (event.pressed):
-				if (v_box_container.visible):
-					toggle_size()
-				else:
+		if (event.physical_keycode == KEY_QUOTELEFT): # ~ key.
+			if (event.physical_keycode == KEY_QUOTELEFT and event.is_command_or_control_pressed()): # Toggles console size or opens big console.
+				if (event.pressed):
+					if (v_box_container.visible):
+						toggle_size()
+					else:
+						toggle_console()
+						toggle_size()
+				get_tree().get_root().set_input_as_handled()
+			else:
+				if (event.pressed):
 					toggle_console()
-					toggle_size()
-			get_tree().get_root().set_input_as_handled()
+				get_tree().get_root().set_input_as_handled()
 		elif (event.get_physical_keycode_with_modifiers() == KEY_ESCAPE && v_box_container.visible): # Disable console on ESC
 			if (event.pressed):
 				toggle_console()
