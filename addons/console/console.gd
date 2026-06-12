@@ -32,6 +32,7 @@ var _conosle_tween_time : float = 5
 signal console_opened
 signal console_closed
 signal console_unknown_command
+signal console_cvar_changed(cvar_name : String, value : Variant)
 
 
 class ConsoleCommand:
@@ -46,6 +47,39 @@ class ConsoleCommand:
 		required = in_required
 		description = in_description
 
+
+class ConsoleCvar:
+	var name : String
+	var description : String
+	var type : int
+	var save : bool
+	var value : Variant
+	var object : Object
+	var property : String
+
+	func _init(in_name : String, in_type : int, in_description : String = "", in_save : bool = false):
+		name = in_name
+		type = in_type
+		description = in_description
+		save = in_save
+
+	func is_reference() -> bool:
+		return object != null
+
+	func is_alive() -> bool:
+		return object == null or is_instance_valid(object)
+
+	func get_value() -> Variant:
+		if object != null:
+			return object.get_indexed(property)
+		return value
+
+	func set_value(new_value : Variant) -> void:
+		if object != null:
+			object.set_indexed(property, new_value)
+		else:
+			value = new_value
+
 var theme : Theme
 var canvas_layer : CanvasLayer = CanvasLayer.new()
 var v_box_container : VBoxContainer = VBoxContainer.new()
@@ -57,6 +91,9 @@ var panel : Panel = Panel.new()
 var line_edit : LineEdit = LineEdit.new()
 
 var console_commands : Dictionary[String, ConsoleCommand] = {}
+var console_cvars : Dictionary[String, ConsoleCvar] = {}
+# Pending values are applied when cvars are registered (if loaded from config)
+var _pending_cvar_values : Dictionary[String, Variant] = {}
 var command_parameters : Dictionary[String, PackedStringArray] = {}
 var console_history : Array[String] = []
 var console_history_index : int = 0
@@ -94,6 +131,122 @@ func remove_command(command_name : String) -> void:
 	command_parameters.erase(command_name)
 
 
+## Registers an auto-managed cvar that stores its value internally.
+## Type the name to print the value, or "name value" to set it.  The value is coerced to the
+## type of default_value.  If save is true, the value is persisted to user://console_cvars.txt.
+## Usage: Console.add_cvar("cl_fov", 90.0, "Field of view.", true)
+func add_cvar(cvar_name : String, default_value : Variant, description : String = "", save : bool = false) -> void:
+	var cvar := ConsoleCvar.new(cvar_name, typeof(default_value), description, save)
+	cvar.value = default_value
+	console_cvars[cvar_name] = cvar
+	_apply_pending_cvar_value(cvar)
+
+
+## Registers a cvar that reads from and writes to a property on another object.
+## The cvar type is inferred from the property's current value.  property may be a nested path
+## (ex: "position:x").
+## Usage: Console.add_cvar_reference("cl_fov", camera, "fov", "Camera field of view.")
+func add_cvar_reference(cvar_name : String, object : Object, property : String, description : String = "", save : bool = false) -> void:
+	if not is_instance_valid(object):
+		print_error("Cannot register cvar \"%s\": invalid object." % cvar_name)
+		return
+	var cvar := ConsoleCvar.new(cvar_name, typeof(object.get_indexed(property)), description, save)
+	cvar.object = object
+	cvar.property = property
+	console_cvars[cvar_name] = cvar
+	_apply_pending_cvar_value(cvar)
+
+
+## Removes a cvar.  Call this on _exit_tree() for reference cvars whose object is freed early.
+func remove_cvar(cvar_name : String) -> void:
+	console_cvars.erase(cvar_name)
+
+
+## Returns the current value of a cvar, or null if it doesn't exist / its object was freed.
+func get_cvar(cvar_name : String) -> Variant:
+	if console_cvars.has(cvar_name):
+		var cvar : ConsoleCvar = console_cvars[cvar_name]
+		if cvar.is_alive():
+			return cvar.get_value()
+	return null
+
+
+## Sets the value of a cvar programmatically (no string coercion) and emits console_cvar_changed.
+func set_cvar(cvar_name : String, value : Variant) -> void:
+	if console_cvars.has(cvar_name):
+		var cvar : ConsoleCvar = console_cvars[cvar_name]
+		if cvar.is_alive():
+			cvar.set_value(value)
+			console_cvar_changed.emit(cvar_name, value)
+
+
+func _apply_pending_cvar_value(cvar : ConsoleCvar) -> void:
+	if cvar.save and _pending_cvar_values.has(cvar.name):
+		var saved_value : Variant = _pending_cvar_values[cvar.name]
+		if typeof(saved_value) != cvar.type:
+			saved_value = type_convert(saved_value, cvar.type)
+		cvar.set_value(saved_value)
+		_pending_cvar_values.erase(cvar.name)
+
+
+## Coerces a string into the given Variant.Type.  Returns [success : bool, value : Variant].
+func _coerce_string_to_type(string_value : String, type : int) -> Array:
+	match type:
+		TYPE_BOOL:
+			var lower := string_value.strip_edges().to_lower()
+			if lower in ["1", "true", "yes", "on"]:
+				return [true, true]
+			if lower in ["0", "false", "no", "off"]:
+				return [true, false]
+			return [false, null]
+		TYPE_INT:
+			var int_string := string_value.strip_edges()
+			if int_string.is_valid_int():
+				return [true, int_string.to_int()]
+			return [false, null]
+		TYPE_FLOAT:
+			var float_string := string_value.strip_edges()
+			if float_string.is_valid_float():
+				return [true, float_string.to_float()]
+			return [false, null]
+		TYPE_STRING:
+			return [true, string_value]
+		TYPE_STRING_NAME:
+			return [true, StringName(string_value)]
+		_:
+			# Complex types (Vector2, etc.) require GDScript literal syntax, ex: "Vector2(1, 2)".
+			var parsed : Variant = str_to_var(string_value)
+			if parsed != null and typeof(parsed) == type:
+				return [true, parsed]
+			return [false, null]
+
+
+func _print_cvar_value(cvar : ConsoleCvar) -> void:
+	print_line("%s = [system_color color=CONSOLE_COLOR_LITERAL]%s[/system_color]" % [cvar.name, str(cvar.get_value())])
+
+
+func _handle_cvar(cvar : ConsoleCvar, arguments : PackedStringArray) -> void:
+	if not cvar.is_alive():
+		print_error("Variable \"%s\" references a freed object." % cvar.name)
+		return
+
+	if arguments.is_empty():
+		_print_cvar_value(cvar)
+		if cvar.description:
+			print_line("%s%s" % [tab_string, cvar.description])
+		return
+
+	var raw_value := " ".join(arguments)
+	var result := _coerce_string_to_type(raw_value, cvar.type)
+	if not result[0]:
+		print_error("Invalid value \"%s\" for variable \"%s\" (expected %s)." % [raw_value, cvar.name, type_string(cvar.type)])
+		return
+
+	cvar.set_value(result[1])
+	console_cvar_changed.emit(cvar.name, result[1])
+	_print_cvar_value(cvar)
+
+
 ## Useful if you have a list of possible parameters (ex: level names).
 func add_command_autocomplete_list(command_name : String, param_list : PackedStringArray):
 	command_parameters[command_name] = param_list
@@ -106,6 +259,16 @@ func _enter_tree() -> void:
 			var line := console_history_file.get_line()
 			if (line.length()):
 				add_input_history(line)
+
+	# Load persisted cvar values.  They're stashed until the matching cvar is registered.
+	var console_cvars_file := FileAccess.open("user://console_cvars.txt", FileAccess.READ)
+	if (console_cvars_file):
+		while (!console_cvars_file.eof_reached()):
+			var line := console_cvars_file.get_line()
+			if (line.length()):
+				var split := line.split(" ", true, 1) # "name var_to_str(value)"
+				if (split.size() == 2):
+					_pending_cvar_values[split[0]] = str_to_var(split[1])
 
 	if ProjectSettings.has_setting(CONSOLE_THEME):
 		theme = load(ProjectSettings.get_setting(CONSOLE_THEME))
@@ -205,6 +368,16 @@ func _exit_tree() -> void:
 				console_history_file.store_line(line)
 			write_index += 1
 
+	var console_cvars_file := FileAccess.open("user://console_cvars.txt", FileAccess.WRITE)
+	if (console_cvars_file):
+		for cvar_name in console_cvars:
+			var cvar : ConsoleCvar = console_cvars[cvar_name]
+			if (cvar.save and cvar.is_alive()):
+				console_cvars_file.store_line("%s %s" % [cvar_name, var_to_str(cvar.get_value())])
+		for pending_name in _pending_cvar_values:
+			if (!console_cvars.has(pending_name)):
+				console_cvars_file.store_line("%s %s" % [pending_name, var_to_str(_pending_cvar_values[pending_name])])
+
 
 func _ready() -> void:
 	v_box_container.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST # For that retro look.
@@ -215,6 +388,7 @@ func _ready() -> void:
 	add_command("help", help, 0, 0, "Displays instructions on how to use the console.")
 	add_command("commands_list", commands_list, 0, 0, "Lists all commands and their descriptions.")
 	add_command("commands", commands, 0, 0, "Lists commands with no descriptions.")
+	add_command("cvars", cvars, 0, 0, "Lists all console variables and their values.")
 	add_command("calc", calculate, ["mathematical expression to evaluate"], 0, "Evaluates the math passed in for quick arithmetic.")
 	add_command("echo", print_line, ["string"], 1, "Prints given string to the console.")
 	add_command("echo_warning", print_warning, ["string"], 1, "Prints given string as warning to the console.")
@@ -321,6 +495,8 @@ func autocomplete() -> void:
 			for command in console_commands:
 				if (!console_commands[command].hidden):
 					sorted_commands.append(str(command))
+			for cvar_name in console_cvars:
+				sorted_commands.append(str(cvar_name))
 			sorted_commands.sort()
 			sorted_commands.reverse()
 
@@ -495,9 +671,11 @@ func _on_text_entered(new_text : String) -> void:
 				arguments.append("")
 
 			console_command.function.callv(arguments)
+		elif console_cvars.has(text_command):
+			_handle_cvar(console_cvars[text_command], text_split.slice(1))
 		else:
 			console_unknown_command.emit(text_command)
-			print_error("Command not found.")
+			print_error("Unknown command or variable.")
 
 
 func _on_line_edit_text_changed(new_text : String) -> void:
@@ -524,6 +702,7 @@ func help() -> void:
 		[system_color color=CONSOLE_COLOR_LITERAL]clear[/system_color]: Clears the registry view
 		[system_color color=CONSOLE_COLOR_LITERAL]commands[/system_color]: Shows a reduced list of all the currently registered commands
 		[system_color color=CONSOLE_COLOR_LITERAL]commands_list[/system_color]: Shows a detailed list of all the currently registered commands
+		[system_color color=CONSOLE_COLOR_LITERAL]cvars[/system_color]: Lists all console variables and their values
 		[system_color color=CONSOLE_COLOR_LITERAL]delete_history[/system_color]: Deletes the commands history
 		[system_color color=CONSOLE_COLOR_LITERAL]echo[/system_color]: Prints a given string to the console
 		[system_color color=CONSOLE_COLOR_LITERAL]echo_error[/system_color]: Prints a given string as an error to the console
@@ -580,6 +759,18 @@ func commands_list() -> void:
 			else:
 				arguments_string += "  [system_color color=CONSOLE_COLOR_INFO]<" + console_commands[command].arguments[i] + ">[/system_color]"
 		rich_label.append_text("	[system_color color=CONSOLE_COLOR_LITERAL]%s[/system_color]%s:   %s\n" % [command, arguments_string, description])
+	rich_label.append_text("\n")
+
+
+func cvars() -> void:
+	var names := console_cvars.keys()
+	names.sort()
+	for cvar_name in names:
+		var cvar : ConsoleCvar = console_cvars[cvar_name]
+		var value_string := "<invalid>"
+		if (cvar.is_alive()):
+			value_string = str(cvar.get_value())
+		rich_label.append_text("	[system_color color=CONSOLE_COLOR_LITERAL]%s[/system_color] = [system_color color=CONSOLE_COLOR_INFO]%s[/system_color]   %s\n" % [cvar_name, value_string, cvar.description])
 	rich_label.append_text("\n")
 
 

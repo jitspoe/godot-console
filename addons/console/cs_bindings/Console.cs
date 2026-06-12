@@ -22,10 +22,17 @@ public partial class Console : Node{
     public static void DisconnectConsoleClosed(Callable callable) => console.Disconnect("console_closed", callable);
     public static void ConnectConsoleUnknownCommand(Callable callable) => console.Connect("console_unknown_command", callable);
     public static void DisconnectConsoleUnknownCommand(Callable callable) => console.Disconnect("console_unknown_command", callable);
+    public static void ConnectConsoleCvarChanged(Callable callable) => console.Connect("console_cvar_changed", callable);
+    public static void DisconnectConsoleCvarChanged(Callable callable) => console.Disconnect("console_cvar_changed", callable);
 
     public static void AddCommand(string commandName, Callable function, Array<string> arguments, int required = 0, string description = "") => console.Call("add_command", commandName, function, arguments, required, description);
     public static void AddHiddenCommand(string commandName, Callable function, Array<string> arguments, int required) => console.Call("add_hidden_command", commandName, function, arguments, required);
     public static void RemoveCommand(string commandName) => console.Call("remove_command", commandName);
+    public static void AddCvar(string cvarName, Variant defaultValue, string description = "", bool save = false) => console.Call("add_cvar", cvarName, defaultValue, description, save);
+    public static void AddCvarReference(string cvarName, GodotObject @object, string property, string description = "", bool save = false) => console.Call("add_cvar_reference", cvarName, @object, property, description, save);
+    public static void RemoveCvar(string cvarName) => console.Call("remove_cvar", cvarName);
+    public static Variant GetCvar(string cvarName) => console.Call("get_cvar", cvarName);
+    public static void SetCvar(string cvarName, Variant value) => console.Call("set_cvar", cvarName, value);
     public static void AddCommandAutocompleteList(string commandName, string[] paramList) => console.Call("add_command_autocomplete_list", commandName, paramList);
     public static void Disable() => console.Call("disable");
     public static void Enable() =>console.Call("enable");
@@ -50,6 +57,7 @@ public partial class Console : Node{
     public static void Calculate() => console.Call("calculate");
     public static void Commands() => console.Call("commands");
     public static void CommandsList() => console.Call("commands_list");
+    public static void Cvars() => console.Call("cvars");
     public static void Pause() => console.Call("pause");
     public static void Unpause() => console.Call("unpause");
     public static void Exec(string fileName) => console.Call("exec", filename);

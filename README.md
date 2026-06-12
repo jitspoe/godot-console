@@ -74,3 +74,57 @@ Currently, parameter autocomplete only supports 1 parameter.
 If you prefer to use C#, you might want to check out the C# console by Moliko here, but it's not currently being maintained: https://github.com/MolikoDeveloper/Csharp-Console-Godot
 
 C# bindings were also contributed to work with this GDScript version, but I don't use C# so I can't vouch for if they work or not.
+
+## Console variables (cvars)
+
+A cvar is a named value you can read and change from the console. Type the cvar's name and press
+enter to print its current value, or type the name followed by a value to set it. The value you type
+is coerced to the cvar's type.
+
+There are two ways to register a cvar.
+
+**Auto-managed** — the console stores the value for you. The type is taken from the default value.
+Pass `true` as the last argument to persist the value to `user://console_cvars.txt` between sessions:
+
+```gdscript
+func _ready():
+	# add_cvar(name, default_value, description, save)
+	Console.add_cvar("cl_fov", 90.0, "Field of view.", true)
+
+func _process(_delta):
+	camera.fov = Console.get_cvar("cl_fov")
+```
+
+**Reference** — the cvar reads from and writes to a property on another object. The type is inferred
+from the property's current value. The property may be a nested path (ex: `"position:x"`):
+
+```gdscript
+func _ready():
+	# add_cvar_reference(name, object, property, description, save)
+	Console.add_cvar_reference("cl_fov", $Camera3D, "fov", "Camera field of view.")
+```
+
+In the console:
+
+```
+> cl_fov
+cl_fov = 90
+> cl_fov 110
+cl_fov = 110
+```
+
+Supported types are `bool` (`1`/`0`, `true`/`false`, `on`/`off`, `yes`/`no`), `int`, `float`,
+`String`, and `StringName`. Other types (ex: `Vector2`) can be set using GDScript literal syntax,
+e.g. `cl_offset Vector2(1, 2)`. Invalid input prints an error instead of silently zeroing the value.
+
+Useful helpers:
+
+```gdscript
+Console.get_cvar("cl_fov")          # Read the value from code
+Console.set_cvar("cl_fov", 100.0)   # Set the value from code (no string coercion)
+Console.remove_cvar("cl_fov")       # Unregister (call on _exit_tree for reference cvars)
+Console.console_cvar_changed        # signal(cvar_name, value) emitted whenever a cvar changes
+```
+
+The `cvars` console command lists every registered cvar with its current value. Cvar names also show
+up in tab autocomplete.
