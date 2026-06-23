@@ -94,6 +94,8 @@ var console_commands : Dictionary[String, ConsoleCommand] = {}
 var console_cvars : Dictionary[String, ConsoleCvar] = {}
 # Pending values are applied when cvars are registered (if loaded from config)
 var _pending_cvar_values : Dictionary[String, Variant] = {}
+# The key consists of the command name followed by a colon followed by the parameter index (starting at 1)
+# e.g.: "change_map:1" and "change_map:2"
 var command_parameters : Dictionary[String, PackedStringArray] = {}
 var console_history : Array[String] = []
 var console_history_index : int = 0
@@ -128,7 +130,9 @@ func add_hidden_command(command_name : String, function : Callable, arguments = 
 ## if you have console commands for things that are unloaded before the project closes.
 func remove_command(command_name : String) -> void:
 	console_commands.erase(command_name)
-	command_parameters.erase(command_name)
+	for key in command_parameters.keys():
+		if key.begins_with(command_name + ":"):
+			command_parameters.erase(key)
 
 
 ## Registers an auto-managed cvar that stores its value internally.
@@ -248,8 +252,8 @@ func _handle_cvar(cvar : ConsoleCvar, arguments : PackedStringArray) -> void:
 
 
 ## Useful if you have a list of possible parameters (ex: level names).
-func add_command_autocomplete_list(command_name : String, param_list : PackedStringArray):
-	command_parameters[command_name] = param_list
+func add_command_autocomplete_list(command_name : String, param_list : PackedStringArray, param_index: int = 1):
+	command_parameters["%s:%s"%[command_name,param_index]] = param_list
 
 
 func _enter_tree() -> void:
@@ -484,12 +488,15 @@ func autocomplete() -> void:
 		if (" " in line_edit.text): # We're searching for a parameter to autocomplete
 			var split_text := parse_line_input(line_edit.text)
 			if (split_text.size() > 1):
+				var param_index := split_text.size() - 1
 				var command := split_text[0]
-				var param_input := split_text[1]
-				if (command_parameters.has(command)):
-					for param in command_parameters[command]:
+				var param_input := split_text[param_index]
+				var command_with_index := "%s:%s"%[command,param_index]
+				if (command_parameters.has(command_with_index)):
+					var ready_text := " ".join(split_text.slice(0,-1))
+					for param in command_parameters[command_with_index]:
 						if (param_input in param) or (param_input.length() == 0):
-							suggestions.append(str(command, " ", param))
+							suggestions.append(str(ready_text, " ", param))
 		else:
 			var sorted_commands := []
 			for command in console_commands:
@@ -523,12 +530,12 @@ func toggle_size() -> void:
 	v_box_container.anchor_bottom = _get_console_height()
 
 
-func disable():
+func disable() -> void:
 	enabled = false
 	toggle_console() # Ensure hidden if opened
 
 
-func enable():
+func enable() -> void:
 	enabled = true
 
 
@@ -554,7 +561,7 @@ func toggle_console() -> void:
 			console_closed.emit()
 
 
-func is_visible():
+func is_visible() -> bool:
 	return v_box_container.visible
 
 

@@ -33,11 +33,11 @@ public partial class Console : Node{
     public static void RemoveCvar(string cvarName) => console.Call("remove_cvar", cvarName);
     public static Variant GetCvar(string cvarName) => console.Call("get_cvar", cvarName);
     public static void SetCvar(string cvarName, Variant value) => console.Call("set_cvar", cvarName, value);
-    public static void AddCommandAutocompleteList(string commandName, string[] paramList) => console.Call("add_command_autocomplete_list", commandName, paramList);
+    public static void AddCommandAutocompleteList(string commandName, string[] paramList, int paramIndex = 1) => console.Call("add_command_autocomplete_list", commandName, paramList, paramIndex);
     public static void Disable() => console.Call("disable");
     public static void Enable() =>console.Call("enable");
     public static void ToggleConsole() => console.Call("toggle_console");
-    public static void IsVisible() => console.Call("is_visible");
+    public static bool IsVisible() => console.Call("is_visible").AsBool();
     public static void ScrollToBottom() => console.Call("scroll_to_bottom");
     public static void PrintError(Variant text, bool printGodot = false) => console.Call("print_error", text, printGodot);
     public static void PrintInfo(Variant text, bool printGodot = false) => console.Call("print_info", text, printGodot);
