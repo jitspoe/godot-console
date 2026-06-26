@@ -14,6 +14,11 @@ const CONSOLE_COLOR_LITERAL : String = &"console/color_literal"
 const CONSOLE_TABSTOP : String = &"console/tabstop"
 const CONSOLE_CANVAS_LAYER : String = &"console/canvas_layer"
 
+const CONSOLE_LOG_ERRORS : String = &"console/log_errors"
+const CONSOLE_LOG_MESSAGES: String = &"console/log_messages"
+const CONSOLE_LOG_WARNINGS: String = &"console/log_warnings"
+
+
 ##FIXME: This is here because project settings do no return the default value naturally
 ##This should be fixed in 4.5
 const color_dictionary : Dictionary[String, Color] = {
@@ -93,6 +98,22 @@ func _setup_project_settings() -> void:
 		"type": TYPE_COLOR,
 		"hint": PROPERTY_HINT_COLOR_NO_ALPHA
 	}, color_dictionary[CONSOLE_COLOR_LITERAL])
+
+	add_setting(CONSOLE_LOG_ERRORS, {
+		"name": CONSOLE_LOG_ERRORS,
+		"type": TYPE_BOOL,
+	}, false)
+
+	add_setting(CONSOLE_LOG_MESSAGES, {
+		"name": CONSOLE_LOG_MESSAGES,
+		"type": TYPE_BOOL,
+	}, false)
+
+	add_setting(CONSOLE_LOG_WARNINGS, {
+		"name": CONSOLE_LOG_WARNINGS,
+		"type": TYPE_BOOL,
+	}, false)
+
 
 	ProjectSettings.save()
 

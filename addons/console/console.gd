@@ -80,6 +80,40 @@ class ConsoleCvar:
 		else:
 			value = new_value
 
+class ConsoleLogger extends Logger:
+	func _log_error(function: String, file: String, line: int, code: String, rationale: String, editor_notify: bool, error_type: int, script_backtraces: Array[ScriptBacktrace]) -> void:
+		if is_instance_valid(Console):
+			var traces: String = ""
+			var time_string: String = Time.get_time_string_from_system()
+			for backtrace: ScriptBacktrace in script_backtraces:
+				for frame: int in backtrace.get_frame_count():
+					var frame_file: String = backtrace.get_frame_file(frame)
+					var frame_line: int = backtrace.get_frame_line(frame)
+					var frame_function: String = backtrace.get_frame_function(frame)
+					var language: String = backtrace.get_language_name()
+					## char(0x2022) is the bulletin character '•'
+					traces += "\t\t" + char(0x2022) + " %s:%d @ %s::%s() '%s' \n" % [frame_file, frame_line, language, frame_function, code]
+			
+			var message: String = str("%s\t\tError in Function " % time_string, " '%s' Line %d in file %s" % [function, line, file], " ", "\n\t\tScript Backtrace\n", traces)
+			match error_type:
+				ERROR_TYPE_ERROR:
+					if !ProjectSettings.get_setting("console/log_errors"): return
+					var color: String = color_dictionary.get(CONSOLE_COLOR_ERROR, Color.LIGHT_CORAL).to_html()
+					Console.print_line("\t\t[color=#%s]%s[/color]" % [color, message], false) 
+				
+				ERROR_TYPE_WARNING:
+					if !ProjectSettings.get_setting("console/log_warnings"): return
+					var color: String = color_dictionary.get(CONSOLE_COLOR_WARNING, Color.LIGHT_GOLDENROD).to_html()
+					message = str("%s\t\tWarning in Function " % time_string, " '%s' Line %d in file %s" % [function, line, file], " ", "\n\t\tScript Backtrace\n", traces)
+					Console.print_line("\t\t[color=#%s]%s[/color]" % [color, message], false) 
+				
+	
+	func _log_message(message: String, error: bool) -> void:
+		if is_instance_valid(Console):
+			if !ProjectSettings.get_setting("console/log_messages"): return
+			if error: Console.print_error(message, false)
+			else: Console.print_line(message)
+
 var theme : Theme
 var canvas_layer : CanvasLayer = CanvasLayer.new()
 var v_box_container : VBoxContainer = VBoxContainer.new()
@@ -101,6 +135,9 @@ var was_paused_already : bool = false
 
 var tab_string : String = "    "
 var text_block_cache : Array[String]
+
+var logger: ConsoleLogger
+
 
 ## Usage: Console.add_command("command_name", <function to call>, <number of arguments or array of argument names>, <required number of arguments>, "Help description")
 func add_command(command_name : String, function : Callable, arguments = [], required: int = 0, description : String = "") -> void:
@@ -308,6 +345,9 @@ func _enter_tree() -> void:
 	line_edit.text_changed.connect(_on_line_edit_text_changed)
 	v_box_container.visible = false
 	process_mode = PROCESS_MODE_ALWAYS
+	
+	logger = ConsoleLogger.new()
+	OS.add_logger(logger)
 
 
 ## Get the scale of the console from the settings -- if this is not in the system settings return a default value
