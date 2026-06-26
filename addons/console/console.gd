@@ -222,7 +222,7 @@ func _coerce_string_to_type(string_value : String, type : int) -> Array:
 
 
 func _print_cvar_value(cvar : ConsoleCvar) -> void:
-	print_line("%s = [system_color color=CONSOLE_COLOR_LITERAL]%s[/system_color]" % [cvar.name, str(cvar.get_value())])
+	print_line("%s = %s" % [cvar.name, tag_color(str(cvar.get_value()), CONSOLE_COLOR_LITERAL)])
 
 
 func _handle_cvar(cvar : ConsoleCvar, arguments : PackedStringArray) -> void:
@@ -296,7 +296,7 @@ func _enter_tree() -> void:
 	rich_label.scroll_following = true
 	rich_label.anchor_right = 1.0
 	rich_label.anchor_bottom = 1.0
-	rich_label.install_effect(preload("res://addons/console/system_color.gd").new())
+	rich_label.install_effect(preload("res://addons/console/system_color.gd").new()) # Can probably get rid of this, but leaving it for now in case people are using system_color in custom stuff.
 	panel.add_child(rich_label)
 	rich_label.append_text("Development console.\n")
 	line_edit.anchor_right = 1.0
@@ -563,28 +563,34 @@ func scroll_to_bottom() -> void:
 	scroll.value = scroll.max_value - scroll.page
 
 
-func print_error(text : Variant, print_godot := false) -> void:
-	var _color : Color = Color.LIGHT_CORAL
-	if not text is String:
-		text = str(text)
+func get_console_color_html(color_type : String) -> String:
+	var color : Color = Console.color_dictionary[color_type]
+	if ProjectSettings.has_setting(color_type):
+		color = ProjectSettings.get_setting(color_type)
+	return color.to_html()
 
-	print_line("%s[system_color color=CONSOLE_COLOR_ERROR]ERROR:[/system_color] %s" % [tab_string, text], print_godot)
+
+func tag_color(text : String, color_type : String) -> String:
+	return str("[color=", get_console_color_html(color_type), "]", text, "[/color]")
+
+
+func print_error(text : Variant, print_godot := false) -> void:
+	if !(text is String):
+		text = str(text)
+	print_line(str(tab_string, tag_color(tr("ERROR: "), CONSOLE_COLOR_ERROR), text), print_godot)
 
 
 func print_info(text : Variant, print_godot := false) -> void:
-	var _color : Color = Color.LIGHT_BLUE
-	if not text is String:
+	if !(text is String):
 		text = str(text)
-
-	print_line("%s[system_color color=CONSOLE_COLOR_INFO]INFO:[/system_color] %s" % [tab_string, text], print_godot)
+	print_line(str(tab_string, tag_color(tr("INFO: "), CONSOLE_COLOR_INFO), text), print_godot)
 
 
 func print_warning(text : Variant, print_godot := false) -> void:
-	var _color : Color = Color.LIGHT_GOLDENROD
 	if not text is String:
 		text = str(text)
+	print_line(str(tab_string, tag_color(tr("WARNING: "), CONSOLE_COLOR_WARNING), text), print_godot)
 
-	print_line("%s[system_color color=CONSOLE_COLOR_WARNING]WARNING:[/system_color] %s" % [tab_string, text], print_godot)
 
 func print_line(text : Variant, print_godot := false) -> void:
 	if not text is String:
@@ -697,27 +703,27 @@ func delete_history() -> void:
 
 
 func help() -> void:
-	rich_label.append_text("	Built in commands:
-		[system_color color=CONSOLE_COLOR_LITERAL]calc[/system_color]: Calculates a given expresion
-		[system_color color=CONSOLE_COLOR_LITERAL]clear[/system_color]: Clears the registry view
-		[system_color color=CONSOLE_COLOR_LITERAL]commands[/system_color]: Shows a reduced list of all the currently registered commands
-		[system_color color=CONSOLE_COLOR_LITERAL]commands_list[/system_color]: Shows a detailed list of all the currently registered commands
-		[system_color color=CONSOLE_COLOR_LITERAL]cvars[/system_color]: Lists all console variables and their values
-		[system_color color=CONSOLE_COLOR_LITERAL]delete_history[/system_color]: Deletes the commands history
-		[system_color color=CONSOLE_COLOR_LITERAL]echo[/system_color]: Prints a given string to the console
-		[system_color color=CONSOLE_COLOR_LITERAL]echo_error[/system_color]: Prints a given string as an error to the console
-		[system_color color=CONSOLE_COLOR_LITERAL]echo_info[/system_color]: Prints a given string as info to the console
-		[system_color color=CONSOLE_COLOR_LITERAL]echo_warning[/system_color]: Prints a given string as warning to the console
-		[system_color color=CONSOLE_COLOR_LITERAL]pause[/system_color]: Pauses node processing
-		[system_color color=CONSOLE_COLOR_LITERAL]unpause[/system_color]: Unpauses node processing
-		[system_color color=CONSOLE_COLOR_LITERAL]quit[/system_color]: Quits the game
+	rich_label.append_text(str("	Built in commands:
+		", tag_color("calc", CONSOLE_COLOR_LITERAL), ": Calculates a given expresion
+		", tag_color("clear", CONSOLE_COLOR_LITERAL), ": Clears the registry view
+		", tag_color("commands", CONSOLE_COLOR_LITERAL), ": Shows a reduced list of all the currently registered commands
+		", tag_color("commands_list", CONSOLE_COLOR_LITERAL), ": Shows a detailed list of all the currently registered commands
+		", tag_color("cvars", CONSOLE_COLOR_LITERAL), ": Lists all console variables and their values
+		", tag_color("delete_history", CONSOLE_COLOR_LITERAL), ": Deletes the commands history
+		", tag_color("echo", CONSOLE_COLOR_LITERAL), ": Prints a given string to the console
+		", tag_color("echo_error", CONSOLE_COLOR_LITERAL), ": Prints a given string as an error to the console
+		", tag_color("echo_info", CONSOLE_COLOR_LITERAL), ": Prints a given string as info to the console
+		", tag_color("echo_warning", CONSOLE_COLOR_LITERAL), ": Prints a given string as warning to the console
+		", tag_color("pause", CONSOLE_COLOR_LITERAL), ": Pauses node processing
+		", tag_color("unpause", CONSOLE_COLOR_LITERAL), ": Unpauses node processing
+		", tag_color("quit", CONSOLE_COLOR_LITERAL), ": Quits the game
 	Controls:
-		[system_color color=CONSOLE_COLOR_INFO]Up[/system_color] and [system_color color=CONSOLE_COLOR_INFO]Down[/system_color] arrow keys to navigate commands history
-		[system_color color=CONSOLE_COLOR_INFO]PageUp[/system_color] and [system_color color=CONSOLE_COLOR_INFO]PageDown[/system_color] to scroll registry
-		[[system_color color=CONSOLE_COLOR_INFO]Ctrl[/system_color] + [system_color color=CONSOLE_COLOR_INFO]~[/system_color]] to change console size between half screen and full screen
-		[[system_color color=CONSOLE_COLOR_INFO]Ctrl[/system_color] + [system_color color=CONSOLE_COLOR_INFO]Mouse Wheel[/system_color]] up/down to change console font size
-		[system_color color=CONSOLE_COLOR_INFO]~[/system_color] or [system_color color=CONSOLE_COLOR_INFO]Esc[/system_color] key to close the console
-		[system_color color=CONSOLE_COLOR_INFO]Tab[/system_color] key to autocomplete, [system_color system_color=CONSOLE_COLOR_INFO]Tab[/system_color] again to cycle between matching suggestions\n\n")
+		", tag_color("Up", CONSOLE_COLOR_INFO), " and ", tag_color("Down", CONSOLE_COLOR_INFO), " arrow keys to navigate commands history
+		", tag_color("PageUp", CONSOLE_COLOR_INFO), " and ", tag_color("PageDown", CONSOLE_COLOR_INFO), " to scroll registry
+		", tag_color("Ctrl", CONSOLE_COLOR_INFO), " + ", tag_color("~", CONSOLE_COLOR_INFO), " to change console size between half screen and full screen
+		", tag_color("Ctrl", CONSOLE_COLOR_INFO), " + ", tag_color("Mouse Wheel", CONSOLE_COLOR_INFO), " up/down to change console font size
+		", tag_color("~", CONSOLE_COLOR_INFO), " or ", tag_color("Esc", CONSOLE_COLOR_INFO), " key to close the console
+		", tag_color("Tab", CONSOLE_COLOR_INFO), " key to autocomplete, ", tag_color("Tab", CONSOLE_COLOR_INFO), " again to cycle between matching suggestions\n\n"))
 
 
 func calculate(command : String) -> void:
@@ -755,10 +761,10 @@ func commands_list() -> void:
 		var description : String = console_commands[command].description
 		for i in range(console_commands[command].arguments.size()):
 			if i < console_commands[command].required:
-				arguments_string += "  [system_color color=CONSOLE_COLOR_ERROR]<" + console_commands[command].arguments[i] + ">[/system_color]"
+				arguments_string += tag_color(str("  <", console_commands[command].arguments[i], ">"), CONSOLE_COLOR_ERROR)
 			else:
-				arguments_string += "  [system_color color=CONSOLE_COLOR_INFO]<" + console_commands[command].arguments[i] + ">[/system_color]"
-		rich_label.append_text("	[system_color color=CONSOLE_COLOR_LITERAL]%s[/system_color]%s:   %s\n" % [command, arguments_string, description])
+				arguments_string += tag_color(str("  <", console_commands[command].arguments[i], ">"), CONSOLE_COLOR_INFO)
+		rich_label.append_text("	%s%s:   %s\n" % [tag_color(command, CONSOLE_COLOR_LITERAL), arguments_string, description])
 	rich_label.append_text("\n")
 
 
@@ -770,7 +776,7 @@ func cvars() -> void:
 		var value_string := "<invalid>"
 		if (cvar.is_alive()):
 			value_string = str(cvar.get_value())
-		rich_label.append_text("	[system_color color=CONSOLE_COLOR_LITERAL]%s[/system_color] = [system_color color=CONSOLE_COLOR_INFO]%s[/system_color]   %s\n" % [cvar_name, value_string, cvar.description])
+		rich_label.append_text("	%s = %s   %s\n" % [tag_color(cvar_name, CONSOLE_COLOR_LITERAL), tag_color(value_string, CONSOLE_COLOR_INFO), cvar.description])
 	rich_label.append_text("\n")
 
 
