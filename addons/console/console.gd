@@ -417,6 +417,8 @@ func _exit_tree() -> void:
 		for pending_name in _pending_cvar_values:
 			if (!console_cvars.has(pending_name)):
 				console_cvars_file.store_line("%s %s" % [pending_name, var_to_str(_pending_cvar_values[pending_name])])
+	if is_instance_valid(logger):
+		OS.remove_logger(logger)
 
 
 func _ready() -> void:
