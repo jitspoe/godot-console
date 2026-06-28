@@ -69,7 +69,23 @@ func load_level(map_name : String):
 		add_child(level_instance)
 ```
 
-Currently, parameter autocomplete only supports 1 parameter.
+To add autocomplete for multiple parameters, call `Console.add_command_autocomplete_list(...)` multiple times with the `param_index` parameter set. Note, that the parameter index starts at 1, meaning the first parameter has the index 1 the second the index 2 and so on.
+
+```gdscript
+func _ready() -> void:
+	Console.add_command("set_arrow", command_set_arrow, ["direction", "color"], 2)
+
+	# autocomplete for "direction"
+	Console.add_command_autocomplete_list("set_arrow", ["up", "down", "left", "right"], 1)
+
+	# autocomplete for "color"
+	Console.add_command_autocomplete_list("set_arrow", ["red", "yellow", "green", "blue"], 2)
+	
+func command_set_arrow(direction: String, color: String) -> void:
+	...
+```
+
+## C#
 
 If you prefer to use C#, you might want to check out the C# console by Moliko here, but it's not currently being maintained: https://github.com/MolikoDeveloper/Csharp-Console-Godot
 
