@@ -8,6 +8,7 @@ const CONSOLE_COLOR_ERROR : String = &"console/color_error"
 const CONSOLE_COLOR_INFO : String = &"console/color_info"
 const CONSOLE_COLOR_LITERAL : String = &"console/color_literal"
 const CONSOLE_TABSTOP : String = &"console/tabstop"
+const CONSOLE_CANVAS_LAYER : String = &"console/canvas_layer"
 
 const color_dictionary : Dictionary[String, Color] = {
 	CONSOLE_COLOR_ERROR: Color.LIGHT_CORAL,
@@ -321,7 +322,7 @@ func _enter_tree() -> void:
 		for i in range(ProjectSettings.get_setting(CONSOLE_TABSTOP)):
 			tab_string += " "
 
-	canvas_layer.layer = ProjectSettings.get_setting(&"console/canvas_layer", 3)
+	canvas_layer.layer = ProjectSettings.get_setting(CONSOLE_CANVAS_LAYER, 3)
 	add_child(canvas_layer)
 	console_scale = _get_console_scale_setting()
 	v_box_container.offset_bottom = 0
