@@ -12,6 +12,7 @@ const CONSOLE_CANVAS_LAYER : String = "console/canvas_layer"
 const CONSOLE_LOG_ERRORS : String = "console/log_errors"
 const CONSOLE_LOG_MESSAGES: String = "console/log_messages"
 const CONSOLE_LOG_WARNINGS: String = "console/log_warnings"
+const CONSOLE_AUTOCOMPLETE_IGNORE_CASE : String = "console/autocomplete_ignore_case"
 
 ##FIXME: This is here because project settings do no return the default value naturally
 ##This should be fixed in 4.5
@@ -137,6 +138,7 @@ var _pending_cvar_values : Dictionary[String, Variant] = {}
 # The key consists of the command name followed by a colon followed by the parameter index (starting at 1)
 # e.g.: "change_map:1" and "change_map:2"
 var command_parameters : Dictionary[String, PackedStringArray] = {}
+var autocomplete_ignore_case : bool = true
 var console_history : Array[String] = []
 var console_history_index : int = 0
 var was_paused_already : bool = false
@@ -238,6 +240,11 @@ static func setup_project_settings() -> void:
 		"name": CONSOLE_LOG_WARNINGS,
 		"type": TYPE_BOOL,
 	}, false)
+
+	_add_project_setting(CONSOLE_AUTOCOMPLETE_IGNORE_CASE, {
+		"name": CONSOLE_AUTOCOMPLETE_IGNORE_CASE,
+		"type": TYPE_BOOL,
+	}, true)
 
 	ProjectSettings.save()
 
@@ -389,9 +396,16 @@ func _handle_cvar(cvar : ConsoleCvar, arguments : PackedStringArray) -> void:
 	_print_cvar_value(cvar)
 
 
+## Returns a string that can be used as a dictionary key for command and parameter autocomplete
+func _get_command_autocomplete_key(command_name : String, param_index : int) -> String:
+	# We could do a .to_lower() here if we wanted even more autocomplete but that would break commands
+	# with mismatched case -- i.e. we have "AddMoney", "addmoney", and "addMoney" all defined
+	return "%s:%s" % [command_name, param_index]
+
+
 ## Useful if you have a list of possible parameters (ex: level names).
 func add_command_autocomplete_list(command_name : String, param_list : PackedStringArray, param_index: int = 1):
-	command_parameters["%s:%s"%[command_name,param_index]] = param_list
+	command_parameters[_get_command_autocomplete_key(command_name, param_index)] = param_list
 
 
 func _enter_tree() -> void:
@@ -421,6 +435,9 @@ func _enter_tree() -> void:
 		tab_string = ""
 		for i in range(ProjectSettings.get_setting(CONSOLE_TABSTOP)):
 			tab_string += " "
+
+	if ProjectSettings.has_setting(CONSOLE_AUTOCOMPLETE_IGNORE_CASE):
+		autocomplete_ignore_case = bool(ProjectSettings.get_setting(CONSOLE_AUTOCOMPLETE_IGNORE_CASE))
 
 	canvas_layer.layer = ProjectSettings.get_setting(CONSOLE_CANVAS_LAYER, 3)
 	add_child(canvas_layer)
@@ -610,56 +627,68 @@ func _input(event : InputEvent) -> void:
 					get_tree().get_root().set_input_as_handled()
 
 
+func is_autocomplete_match(input: String, param: String) -> bool:
+	return input.is_empty() or (param.containsn(input) if autocomplete_ignore_case else param.contains(input))
+
+
 var suggestions := []
 var current_suggest := 0
 var suggesting := false
 
 func autocomplete() -> void:
-	if (suggesting):
-		for i in range(suggestions.size()):
-			if (current_suggest == i):
-				line_edit.text = str(suggestions[i])
-				line_edit.caret_column = line_edit.text.length()
-				if (current_suggest == suggestions.size() - 1):
-					current_suggest = 0
-				else:
-					current_suggest += 1
-				return
+	if suggesting:
+		if suggestions:
+			current_suggest = mini(current_suggest, suggestions.size() - 1)
+			line_edit.text = str(suggestions[current_suggest])
+			line_edit.caret_column = line_edit.text.length()
+			current_suggest = wrapi(current_suggest + 1, 0, suggestions.size())
+		return
+
+	suggesting = true
+
+	if " " in line_edit.text:
+		var split_text: = parse_line_input(line_edit.text)
+		if split_text.size() > 1:
+			var param_index: = split_text.size() - 1
+			var input_command: = split_text[0]
+			var input_param: = split_text[param_index]
+			var autocomplete_key: = _get_command_autocomplete_key(input_command, param_index)
+
+			# We assume that input_command (and thus autocomplete_key) matches autocomplete key
+			# _exactly_ as we don't do a case insensitive search through the dictionary. It will be
+			# correct as long as we've either typed in the command name correctly or autocompleted
+			# the command name.
+			if command_parameters.has(autocomplete_key):
+				var ready_text: = " ".join(split_text.slice(0, -1))
+				for param: String in command_parameters[autocomplete_key]:
+					if is_autocomplete_match(input_param, param):
+						suggestions.append(str(ready_text, " ", param))
+
 	else:
-		suggesting = true
+		var query: = line_edit.text.strip_edges()
 
-		if (" " in line_edit.text): # We're searching for a parameter to autocomplete
-			var split_text := parse_line_input(line_edit.text)
-			if (split_text.size() > 1):
-				var param_index := split_text.size() - 1
-				var command := split_text[0]
-				var param_input := split_text[param_index]
-				var command_with_index := "%s:%s"%[command,param_index]
-				if (command_parameters.has(command_with_index)):
-					var ready_text := " ".join(split_text.slice(0,-1))
-					for param in command_parameters[command_with_index]:
-						if (param_input in param) or (param_input.length() == 0):
-							suggestions.append(str(ready_text, " ", param))
-		else:
-			var sorted_commands := []
-			for command in console_commands:
-				if (!console_commands[command].hidden):
-					sorted_commands.append(str(command))
-			for cvar_name in console_cvars:
-				sorted_commands.append(str(cvar_name))
-			sorted_commands.sort()
-			sorted_commands.reverse()
+		var matches: Array[String] = []
+		for command_name: String in console_commands:
+			if console_commands[command_name].hidden:
+				continue
+			if is_autocomplete_match(query, command_name):
+				matches.append(command_name)
+		for cvar_name: String in console_cvars:
+			if is_autocomplete_match(query, cvar_name):
+				matches.append(cvar_name)
 
-			var prev_index := 0
-			for command in sorted_commands:
-				if (!line_edit.text || command.contains(line_edit.text)):
-					var index : int = command.find(line_edit.text)
-					if (index <= prev_index):
-						suggestions.push_front(command)
-					else:
-						suggestions.push_back(command)
-					prev_index = index
-		autocomplete()
+		matches.sort_custom(func (a: String, b: String) -> bool:
+			var ai: = a.findn(query) if autocomplete_ignore_case else a.find(query)
+			var bi: = b.findn(query) if autocomplete_ignore_case else b.find(query)
+			if ai != bi:
+				return ai < bi
+			var cmp: = a.naturalnocasecmp_to(b) if autocomplete_ignore_case else a.naturalcasecmp_to(b)
+			return cmp < 0
+		)
+
+		suggestions = matches
+
+	autocomplete()
 
 
 func reset_autocomplete() -> void:
