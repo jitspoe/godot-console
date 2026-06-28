@@ -1,15 +1,20 @@
 extends Node
 
-const CONSOLE_THEME : String = &"console/theme"
-const CONSOLE_SCALE : String = &"console/scale"
-const CONSOLE_HEIGHT : String = &"console/height"
-const CONSOLE_COLOR_WARNING : String = &"console/color_warning"
-const CONSOLE_COLOR_ERROR : String = &"console/color_error"
-const CONSOLE_COLOR_INFO : String = &"console/color_info"
-const CONSOLE_COLOR_LITERAL : String = &"console/color_literal"
-const CONSOLE_TABSTOP : String = &"console/tabstop"
-const CONSOLE_CANVAS_LAYER : String = &"console/canvas_layer"
+const CONSOLE_THEME : String = "console/theme"
+const CONSOLE_SCALE : String = "console/scale"
+const CONSOLE_HEIGHT : String = "console/height"
+const CONSOLE_COLOR_WARNING : String = "console/color_warning"
+const CONSOLE_COLOR_ERROR : String = "console/color_error"
+const CONSOLE_COLOR_INFO : String = "console/color_info"
+const CONSOLE_COLOR_LITERAL : String = "console/color_literal"
+const CONSOLE_TABSTOP : String = "console/tabstop"
+const CONSOLE_CANVAS_LAYER : String = "console/canvas_layer"
+const CONSOLE_LOG_ERRORS : String = "console/log_errors"
+const CONSOLE_LOG_MESSAGES: String = "console/log_messages"
+const CONSOLE_LOG_WARNINGS: String = "console/log_warnings"
 
+##FIXME: This is here because project settings do no return the default value naturally
+##This should be fixed in 4.5
 const color_dictionary : Dictionary[String, Color] = {
 	CONSOLE_COLOR_ERROR: Color.LIGHT_CORAL,
 	CONSOLE_COLOR_INFO: Color.LIGHT_BLUE,
@@ -98,12 +103,12 @@ class ConsoleLogger extends Logger:
 			var message: String = str("%s\t\tError in Function " % time_string, " '%s' Line %d in file %s" % [function, line, file], " ", "\n\t\tScript Backtrace\n", traces)
 			match error_type:
 				ERROR_TYPE_ERROR:
-					if !ProjectSettings.get_setting("console/log_errors"): return
+					if !ProjectSettings.get_setting(CONSOLE_LOG_ERRORS): return
 					var color: String = color_dictionary.get(CONSOLE_COLOR_ERROR, Color.LIGHT_CORAL).to_html()
 					Console.print_line("\t\t[color=#%s]%s[/color]" % [color, message], false) 
 				
 				ERROR_TYPE_WARNING:
-					if !ProjectSettings.get_setting("console/log_warnings"): return
+					if !ProjectSettings.get_setting(CONSOLE_LOG_WARNINGS): return
 					var color: String = color_dictionary.get(CONSOLE_COLOR_WARNING, Color.LIGHT_GOLDENROD).to_html()
 					message = str("%s\t\tWarning in Function " % time_string, " '%s' Line %d in file %s" % [function, line, file], " ", "\n\t\tScript Backtrace\n", traces)
 					Console.print_line("\t\t[color=#%s]%s[/color]" % [color, message], false) 
@@ -111,7 +116,7 @@ class ConsoleLogger extends Logger:
 	
 	func _log_message(message: String, error: bool) -> void:
 		if is_instance_valid(Console):
-			if !ProjectSettings.get_setting("console/log_messages"): return
+			if !ProjectSettings.get_setting(CONSOLE_LOG_MESSAGES): return
 			if error: Console.print_error(message, false)
 			else: Console.print_line(message)
 
@@ -140,6 +145,101 @@ var tab_string : String = "    "
 var text_block_cache : Array[String]
 
 var logger: ConsoleLogger
+
+## Should only be called during plugin initialization
+static func _add_project_setting(setting_name: String, property_info: Dictionary, default: Variant) -> void:
+	if not ProjectSettings.has_setting(setting_name):
+		ProjectSettings.set_setting(setting_name, default)
+	ProjectSettings.add_property_info(property_info)
+	ProjectSettings.set_initial_value(setting_name, default)
+	ProjectSettings.set_as_basic(setting_name, true)
+
+
+## Should only be called during plugin initialization
+## Will be called by the EditorPlugin in this addon
+static func setup_project_settings() -> void:
+	if not Engine.is_editor_hint():
+		return
+
+	## Configure Console Theme
+	_add_project_setting(CONSOLE_THEME, {
+		"name": CONSOLE_THEME,
+		"type": TYPE_STRING,
+		"hint": PROPERTY_HINT_FILE,
+		"hint_string": "*.tres",
+	}, "")
+
+	## Configure Console Scale
+	_add_project_setting(CONSOLE_SCALE, {
+		"name": CONSOLE_SCALE,
+		"type": TYPE_FLOAT,
+		"hint": PROPERTY_HINT_RANGE,
+		"hint_string": "0,10,0.1,or_greater"
+	}, 1.0)
+
+	## Configure Console Height
+	_add_project_setting(CONSOLE_HEIGHT, {
+		"name": CONSOLE_HEIGHT,
+		"type": TYPE_FLOAT,
+		"hint": PROPERTY_HINT_RANGE,
+		"hint_string": "0,1,0.1"
+	}, 0.5)
+
+	## Configure Tab Spaces
+	_add_project_setting(CONSOLE_TABSTOP, {
+		"name": CONSOLE_TABSTOP,
+		"type": TYPE_INT,
+		"hint": PROPERTY_HINT_RANGE,
+		"hint_string": "0,8,1,or_greater"
+	},4)
+
+	## Configure Canvas Layer
+	_add_project_setting(CONSOLE_CANVAS_LAYER, {
+		"name": CONSOLE_CANVAS_LAYER,
+		"type": TYPE_INT,
+	}, 3)
+
+	#Configure Colors
+	_add_project_setting(CONSOLE_COLOR_ERROR, {
+		"name": CONSOLE_COLOR_ERROR,
+		"type": TYPE_COLOR,
+		"hint": PROPERTY_HINT_COLOR_NO_ALPHA,
+	}, color_dictionary[CONSOLE_COLOR_ERROR])
+
+	_add_project_setting(CONSOLE_COLOR_INFO, {
+		"name": CONSOLE_COLOR_INFO,
+		"type": TYPE_COLOR,
+		"hint": PROPERTY_HINT_COLOR_NO_ALPHA,
+	}, color_dictionary[CONSOLE_COLOR_INFO])
+
+	_add_project_setting(CONSOLE_COLOR_WARNING, {
+		"name": CONSOLE_COLOR_WARNING,
+		"type": TYPE_COLOR,
+		"hint": PROPERTY_HINT_COLOR_NO_ALPHA,
+	}, color_dictionary[CONSOLE_COLOR_WARNING])
+
+	_add_project_setting(CONSOLE_COLOR_LITERAL, {
+		"name": CONSOLE_COLOR_LITERAL,
+		"type": TYPE_COLOR,
+		"hint": PROPERTY_HINT_COLOR_NO_ALPHA
+	}, color_dictionary[CONSOLE_COLOR_LITERAL])
+
+	_add_project_setting(CONSOLE_LOG_ERRORS, {
+		"name": CONSOLE_LOG_ERRORS,
+		"type": TYPE_BOOL,
+	}, false)
+
+	_add_project_setting(CONSOLE_LOG_MESSAGES, {
+		"name": CONSOLE_LOG_MESSAGES,
+		"type": TYPE_BOOL,
+	}, false)
+
+	_add_project_setting(CONSOLE_LOG_WARNINGS, {
+		"name": CONSOLE_LOG_WARNINGS,
+		"type": TYPE_BOOL,
+	}, false)
+
+	ProjectSettings.save()
 
 
 ## Usage: Console.add_command("command_name", <function to call>, <number of arguments or array of argument names>, <required number of arguments>, "Help description")
