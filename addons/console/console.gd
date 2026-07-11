@@ -81,6 +81,13 @@ class ConsoleCvar:
 			value = new_value
 
 class ConsoleLogger extends Logger:
+	var regex_strip_ansii : RegEx
+	var label : Label
+
+	func _init() -> void:
+		regex_strip_ansii = RegEx.new()
+		regex_strip_ansii.compile("\u001b\\[((?:\\d|;)*)([a-zA-Z])")
+		
 	func _log_error(function: String, file: String, line: int, code: String, rationale: String, editor_notify: bool, error_type: int, script_backtraces: Array[ScriptBacktrace]) -> void:
 		if is_instance_valid(Console):
 			var traces: String = ""
@@ -109,10 +116,14 @@ class ConsoleLogger extends Logger:
 				
 	
 	func _log_message(message: String, error: bool) -> void:
-		if is_instance_valid(Console):
-			if !ProjectSettings.get_setting("console/log_messages"): return
-			if error: Console.print_error(message, false)
-			else: Console.print_line(message)
+		if (is_instance_valid(Console)):
+			if (!ProjectSettings.get_setting("console/log_messages")):
+				return
+			message = regex_strip_ansii.sub(message, "", true)
+			if (error):
+				Console.print_error(message, false)
+			else:
+				Console.print_line(message)
 
 var theme : Theme
 var canvas_layer : CanvasLayer = CanvasLayer.new()
