@@ -22,10 +22,13 @@ const color_dictionary : Dictionary[String, Color] = {
 	CONSOLE_COLOR_LITERAL: Color.PALE_GREEN,
 	CONSOLE_COLOR_WARNING: Color.LIGHT_GOLDENROD
 }
-
+## Should the console be enabled at all
 var enabled : bool = true
+## Should the console be avilable for use when the game is exported as a release build
 var enable_on_release_build : bool = false : set = set_enable_on_release_build
+## Should the game pause when the console is active
 var pause_enabled : bool = false
+## What size the font in the Console should be
 var font_size : int : set = _set_font_size
 
 ## What visual scale should the console be
