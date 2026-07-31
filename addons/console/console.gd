@@ -87,6 +87,7 @@ class ConsoleCvar:
 		else:
 			value = new_value
 
+
 class ConsoleLogger extends Logger:
 	var regex_strip_ansii : RegEx
 	var label : Label
@@ -94,34 +95,55 @@ class ConsoleLogger extends Logger:
 	func _init() -> void:
 		regex_strip_ansii = RegEx.new()
 		regex_strip_ansii.compile("\u001b\\[((?:\\d|;)*)([a-zA-Z])")
-		
+
+	func build_traces(script_backtraces: Array[ScriptBacktrace]) -> String:
+		var traces: String = ""
+		for backtrace: ScriptBacktrace in script_backtraces:
+			for frame: int in backtrace.get_frame_count():
+				var frame_file: String = backtrace.get_frame_file(frame)
+				var frame_line: int = backtrace.get_frame_line(frame)
+				var frame_function: String = backtrace.get_frame_function(frame)
+				var language: String = backtrace.get_language_name()
+				## char(0x2022) is the bulletin character '•'
+				traces += "\t\t" + char(0x2022) + " %s:%d @ %s::%s()\n" % [frame_file, frame_line, language, frame_function]
+		return traces
+
 	func _log_error(function: String, file: String, line: int, code: String, rationale: String, editor_notify: bool, error_type: int, script_backtraces: Array[ScriptBacktrace]) -> void:
 		if is_instance_valid(Console):
-			var traces: String = ""
-			var time_string: String = Time.get_time_string_from_system()
-			for backtrace: ScriptBacktrace in script_backtraces:
-				for frame: int in backtrace.get_frame_count():
-					var frame_file: String = backtrace.get_frame_file(frame)
-					var frame_line: int = backtrace.get_frame_line(frame)
-					var frame_function: String = backtrace.get_frame_function(frame)
-					var language: String = backtrace.get_language_name()
-					## char(0x2022) is the bulletin character '•'
-					traces += "\t\t" + char(0x2022) + " %s:%d @ %s::%s() '%s' \n" % [frame_file, frame_line, language, frame_function, code]
-			
-			var message: String = str("%s\t\tError in Function " % time_string, " '%s' Line %d in file %s" % [function, line, file], " ", "\n\t\tScript Backtrace\n", traces)
+			var error_type_string : String
+			var color : String
 			match error_type:
 				ERROR_TYPE_ERROR:
-					if !ProjectSettings.get_setting(CONSOLE_LOG_ERRORS): return
-					var color: String = color_dictionary.get(CONSOLE_COLOR_ERROR, Color.LIGHT_CORAL).to_html()
-					Console.print_line("\t\t[color=#%s]%s[/color]" % [color, message], false) 
-				
+					if (!ProjectSettings.get_setting(CONSOLE_LOG_ERRORS)):
+						return
+					error_type_string = "ERROR"
+					color = color_dictionary.get(CONSOLE_COLOR_ERROR, Color.LIGHT_CORAL).to_html()
 				ERROR_TYPE_WARNING:
-					if !ProjectSettings.get_setting(CONSOLE_LOG_WARNINGS): return
-					var color: String = color_dictionary.get(CONSOLE_COLOR_WARNING, Color.LIGHT_GOLDENROD).to_html()
-					message = str("%s\t\tWarning in Function " % time_string, " '%s' Line %d in file %s" % [function, line, file], " ", "\n\t\tScript Backtrace\n", traces)
-					Console.print_line("\t\t[color=#%s]%s[/color]" % [color, message], false) 
-				
-	
+					if (!ProjectSettings.get_setting(CONSOLE_LOG_WARNINGS)):
+						return
+					error_type_string = "WARNING"
+					color = color_dictionary.get(CONSOLE_COLOR_WARNING, Color.LIGHT_GOLDENROD).to_html()
+				ERROR_TYPE_SCRIPT:
+					if (!ProjectSettings.get_setting(CONSOLE_LOG_ERRORS)):
+						return
+					error_type_string = "SCRIPT ERROR"
+					color = color_dictionary.get(CONSOLE_COLOR_ERROR, Color.LIGHT_CORAL).to_html()
+				ERROR_TYPE_SHADER:
+					if (!ProjectSettings.get_setting(CONSOLE_LOG_ERRORS)):
+						return
+					color = color_dictionary.get(CONSOLE_COLOR_ERROR, Color.LIGHT_CORAL).to_html()
+				_:
+					if (!ProjectSettings.get_setting(CONSOLE_LOG_ERRORS)):
+						return
+					error_type_string = "UNKNOWN ERROR TYPE"
+					color = color_dictionary.get(CONSOLE_COLOR_ERROR, Color.LIGHT_CORAL).to_html()
+
+			var details := rationale if rationale else code
+			var time_string: String = Time.get_time_string_from_system()
+			var message := str(time_string, "\t", error_type_string, ": ", details, " at ", function, " (", file, ":", line, ")\n", build_traces(script_backtraces))
+			Console.print_line("[color=#%s]%s[/color]" % [color, message], false) 
+
+
 	func _log_message(message: String, error: bool) -> void:
 		if (is_instance_valid(Console)):
 			if (!ProjectSettings.get_setting(CONSOLE_LOG_MESSAGES)):
@@ -131,6 +153,7 @@ class ConsoleLogger extends Logger:
 				Console.print_error(message, false)
 			else:
 				Console.print_line(message)
+
 
 var theme : Theme
 var canvas_layer : CanvasLayer = CanvasLayer.new()
