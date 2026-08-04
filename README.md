@@ -15,7 +15,7 @@ func my_hello_function():
   Console.print_line("Hello, world!")
 ```
 
-You can also specify up to 3 parameters, which will be passed in as strings:
+You can also specify parameters, which will be passed in as strings:
 
 ```gdscript
   Console.add_command("param_test", param_test_function, 1) # 1 specifies 1 parameter
@@ -90,6 +90,9 @@ func command_set_arrow(direction: String, color: String) -> void:
 If you prefer to use C#, you might want to check out the C# console by Moliko here, but it's not currently being maintained: https://github.com/MolikoDeveloper/Csharp-Console-Godot
 
 C# bindings were also contributed to work with this GDScript version, but I don't use C# so I can't vouch for if they work or not.
+
+To use the C# bindings, you need to set the script [`Console.cs`](https://github.com/jitspoe/godot-console/blob/master/addons/console/cs_bindings/Console.cs) as a autoload.
+Only adding Console.cs, removes the coloring of the console.
 
 ## Console variables (cvars)
 
