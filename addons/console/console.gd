@@ -920,7 +920,7 @@ func delete_history() -> void:
 
 func help() -> void:
 	rich_label.append_text(str("	Built in commands:
-		", tag_color("calc", CONSOLE_COLOR_LITERAL), ": Calculates a given expresion
+		", tag_color("calc", CONSOLE_COLOR_LITERAL), ": Calculates a given expression
 		", tag_color("clear", CONSOLE_COLOR_LITERAL), ": Clears the registry view
 		", tag_color("commands", CONSOLE_COLOR_LITERAL), ": Shows a reduced list of all the currently registered commands
 		", tag_color("commands_list", CONSOLE_COLOR_LITERAL), ": Shows a detailed list of all the currently registered commands
